@@ -1,5 +1,5 @@
 package br.com.java.autoflex.service;
 
-public class ProductMaterialService {
+public interface ProductMaterialService {
     
 }
