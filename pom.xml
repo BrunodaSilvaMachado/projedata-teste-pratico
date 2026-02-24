@@ -13,7 +13,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>war</packaging>
 	<name>autoflex</name>
-	<description>Demo project for Spring Boot</description>
+	<description>Projedata project for Spring Boot</description>
 	<url/>
 	<licenses>
 		<license/>
