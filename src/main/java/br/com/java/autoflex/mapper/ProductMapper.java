@@ -17,5 +17,7 @@ public interface ProductMapper {
     @Mapping(target = "product", ignore = true)
     ProductMaterial toProductMaterial(ProductRequestDTO dto);
 
+    @Mapping(target = "rawMaterialId", source = "rawMaterial.id")
+    @Mapping(target = "rawMaterialName", source = "rawMaterial.name")
     ProductMaterialResponseDTO toProductMaterialResponseDTO(ProductMaterial entity);
 }
