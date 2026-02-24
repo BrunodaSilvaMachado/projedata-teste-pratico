@@ -1,5 +1,7 @@
 package br.com.java.autoflex.dto;
 
+import java.math.BigDecimal;
+
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
@@ -11,5 +13,5 @@ public class ProductMaterialRequestDTO {
 
     @NotNull
     @Positive
-    private Double quantityRequired;
+    private BigDecimal quantityRequired;
 }

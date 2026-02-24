@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -18,7 +19,7 @@ public class ProductRequestDTO {
 
     @NotNull
     @Positive
-    private Double price;
+    private BigDecimal price;
 
     @NotNull
     private List<ProductMaterialRequestDTO> materials;

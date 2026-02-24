@@ -1,5 +1,7 @@
 package br.com.java.autoflex.domain;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -35,6 +37,6 @@ public class ProductMaterial {
     @ManyToOne(optional = false)
     @JoinColumn(name = "raw_material_id", nullable = false)
     private RawMaterial rawMaterial;
-    @Column(nullable = false)
-    private Double quantityRequired;
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal quantityRequired;
 }
