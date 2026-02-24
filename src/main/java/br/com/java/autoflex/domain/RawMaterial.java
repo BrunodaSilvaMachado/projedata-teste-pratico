@@ -1,5 +1,7 @@
 package br.com.java.autoflex.domain;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,7 +21,7 @@ public class RawMaterial {
     @Column(nullable = false, unique = true)
     private String code;
     @Column(nullable = false)
-    private Double stockQuantity;
+    private BigDecimal stockQuantity;
     @Column(nullable = false)
     private String unit;  
 }
