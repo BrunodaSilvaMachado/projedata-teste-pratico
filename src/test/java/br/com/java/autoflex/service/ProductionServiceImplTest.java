@@ -168,4 +168,45 @@ public class ProductionServiceImplTest {
         assertTrue(response.getItems().isEmpty());
         assertEquals(BigDecimal.ZERO, response.getTotalValue());
   }
+
+  @Test
+  void shouldIgnoreProductWithNullMaterials() {
+        Product productWithNullMaterials =
+                new Product(1L, "Service","SERVICE01", new BigDecimal("1000"),null);
+
+        when(productRepository.findAllWithMaterials())
+                .thenReturn(new ArrayList<>(List.of(productWithNullMaterials)));
+
+        when(rawMaterialRepository.findAll())
+                .thenReturn(new ArrayList<>());
+
+        ProductionSuggestionResponseDTO response =
+                productionService.generateProductionSuggestionResponseDTO();
+
+        assertTrue(response.getItems().isEmpty());
+        assertEquals(BigDecimal.ZERO, response.getTotalValue());
+  }
+
+  @Test
+  void shouldHandleProductsWithZeroRequiredQuantity() {
+        // Matéria-prima
+        RawMaterial iron = new RawMaterial(1L, "Iron","IRON01", new BigDecimal("100"), "kg");
+
+        // Produto que requer 0 de ferro
+        Product product = new Product(1L,"CAR01", "Car", new BigDecimal("1000"),new ArrayList<ProductMaterial>());
+        ProductMaterial pm = new ProductMaterial(1L, product, iron, BigDecimal.ZERO);
+        product.setMaterials(new ArrayList<>(List.of(pm)));
+
+        when(productRepository.findAllWithMaterials())
+                .thenReturn(new ArrayList<>(List.of(product)));
+
+        when(rawMaterialRepository.findAll())
+                .thenReturn(new ArrayList<>(List.of(iron)));
+
+        ProductionSuggestionResponseDTO response =
+                productionService.generateProductionSuggestionResponseDTO();
+
+        assertEquals(1, response.getItems().size());
+        assertEquals(new BigDecimal("1000"), response.getTotalValue());
+    }
 }

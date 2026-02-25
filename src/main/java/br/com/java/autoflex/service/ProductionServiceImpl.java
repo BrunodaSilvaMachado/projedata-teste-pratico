@@ -48,7 +48,7 @@ public class ProductionServiceImpl implements ProductionService {
         // TODO: Refatorar os itens 4, 5, 6 em métodos separados para melhorar a legibilidade e manutenção do código.
         for (Product product : products) {
 
-            if (product.getMaterials().isEmpty()) {
+            if (product.getMaterials() == null || product.getMaterials().isEmpty()) {
                 continue;
             }
 
@@ -63,13 +63,21 @@ public class ProductionServiceImpl implements ProductionService {
                 BigDecimal stock = availableStock.getOrDefault(materialId, BigDecimal.ZERO);
 
                 if (requiredQuantity.compareTo(BigDecimal.ZERO) == 0) {
+                    // If the product requires 0 of this material, this material
+                    // should not limit production — ignore it for limiting purposes.
                     continue;
                 }
 
                 int possibleUnits = stock.divide(requiredQuantity, 0, RoundingMode.DOWN).intValue();
                 maxUnits = Math.min(maxUnits, possibleUnits);
             }
-            if(maxUnits <= 0){
+            // If no material imposed a limit (still Integer.MAX_VALUE),
+            // produce a single unit by default (avoids Integer.MAX_VALUE propagation).
+            if (maxUnits == Integer.MAX_VALUE) {
+                maxUnits = 1;
+            }
+
+            if (maxUnits <= 0) {
                 continue;
             }
 
