@@ -93,6 +93,24 @@ public class RawMaterialServiceImplTest {
     }
 
     @Test
+    void shouldThrowExceptionWhenUpdatingNonExistingRawMaterial() {
+        Long id = 1L;
+        RawMaterialRequestDTO request = new RawMaterialRequestDTO();
+        request.setName("Iron Updated");
+        request.setCode("IRON01");
+        request.setStockQuantity(new BigDecimal(2000));
+        request.setUnit("kg");
+
+        when(rawMaterialRepository.findById(id)).thenReturn(java.util.Optional.empty());
+
+        try {
+            rawMaterialService.update(id, request);
+        } catch (ResourceNotFoundException e) {
+            assertEquals("Raw material with id 1 not found.", e.getMessage());
+        }
+    }
+
+    @Test
     void shouldFindByIdSuccessfully() {
         Long id = 1L;
         RawMaterial rawMaterial = new RawMaterial(id,"Iron", "IRON01", new BigDecimal(1000), "kg");
@@ -118,6 +136,18 @@ public class RawMaterialServiceImplTest {
         assertNotNull(response);
         assertEquals(1, response.size());
         assertEquals("Iron", response.get(0).getName());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenFindingNonExistingRawMaterialById() {
+        Long id = 1L;
+        when(rawMaterialRepository.findById(id)).thenReturn(java.util.Optional.empty());
+
+        try {
+            rawMaterialService.findById(id);
+        } catch (ResourceNotFoundException e) {
+            assertEquals("Raw material with id 1 not found.", e.getMessage());
+        }
     }
 
     @Test

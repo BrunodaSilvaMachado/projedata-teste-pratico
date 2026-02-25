@@ -93,6 +93,28 @@ public class ProductServiceImplTest {
     }
 
     @Test
+    void shouldNotCreateProductWithNonExistingRawMaterial() {
+        // DTO de requisição
+        ProductRequestDTO requestDTO = new ProductRequestDTO();
+        requestDTO.setCode("CAR01");
+        requestDTO.setName("Car");
+        requestDTO.setPrice(new BigDecimal("1000"));
+        ProductMaterialRequestDTO materialDTO = new ProductMaterialRequestDTO();
+        materialDTO.setRawMaterialId(1L);
+        materialDTO.setQuantityRequired(new BigDecimal("50"));
+        requestDTO.setMaterials(new ArrayList<>(List.of(materialDTO)));
+
+        when(productRepository.existsByCode("CAR01")).thenReturn(false);
+        when(rawMaterialRepository.findById(1L)).thenReturn(java.util.Optional.empty());
+
+        try {
+            productService.create(requestDTO);
+        } catch (ResourceNotFoundException e) {
+            assertEquals("Raw material not found with id: 1", e.getMessage());
+        }
+    }
+
+    @Test
     void shouldUpdateProductSuccessfully() {
         // Produto existente
         Product existing = new Product(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>());
@@ -113,6 +135,40 @@ public class ProductServiceImplTest {
 
         assertTrue(response != null);
         assertEquals("Car Updated", response.getName());
+    }
+
+    @Test
+    void shouldUpdateProductWithMaterials() {
+        // Produto existente
+        Product existing = new Product(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>());
+
+        // DTO de requisição com materiais
+        ProductRequestDTO requestDTO = new ProductRequestDTO();
+        requestDTO.setCode("CAR01");
+        requestDTO.setName("Car Updated");
+        requestDTO.setPrice(new BigDecimal("1200"));
+        ProductMaterialRequestDTO materialDTO = new ProductMaterialRequestDTO();
+        materialDTO.setRawMaterialId(2L);
+        materialDTO.setQuantityRequired(new BigDecimal("10"));
+        requestDTO.setMaterials(new ArrayList<>(List.of(materialDTO)));
+
+        // Matéria-prima existente
+        RawMaterial raw = new RawMaterial(2L, "Steel", "STL01", new BigDecimal("1000"), "kg");
+
+        when(productRepository.findById(1L)).thenReturn(java.util.Optional.of(existing));
+        when(rawMaterialRepository.findById(2L)).thenReturn(java.util.Optional.of(raw));
+        when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        when(productMapper.toResponseDTO(any(Product.class)))
+                .thenReturn(new ProductResponseDTO(1L, "CAR01", "Car Updated", new BigDecimal("1200"), new ArrayList<>()));
+
+        ProductResponseDTO response = productService.update(1L, requestDTO);
+
+        assertNotNull(response);
+        // o objeto 'existing' deve ter recebido 1 ProductMaterial com os valores corretos
+        assertEquals(1, existing.getMaterials().size());
+        ProductMaterial pm = existing.getMaterials().get(0);
+        assertEquals(2L, pm.getRawMaterial().getId());
+        assertEquals(new BigDecimal("10"), pm.getQuantityRequired());
     }
 
     @Test
@@ -159,25 +215,6 @@ public class ProductServiceImplTest {
     }
 
     @Test
-    void shouldDeleteProductSuccessfully() {
-        when(productRepository.existsById(1L)).thenReturn(true);
-
-        productService.delete(1L);
-    }
-
-    @Test
-    void shouldThrowExceptionWhenDeletingNonExistingProduct() {
-        Long id = 1L;
-        when(productRepository.existsById(id)).thenReturn(false);
-
-        try {
-            productService.delete(id);
-        } catch (ResourceNotFoundException e) {
-            assertEquals("Product not found with id: 1", e.getMessage());
-        }
-    }
-
-    @Test
     void shouldFindAllProductsSuccessfully() {
         // Produto existente
         Product product = new Product(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>());
@@ -208,10 +245,14 @@ public class ProductServiceImplTest {
     }
 
     @Test
-    void shouldDeleteSuccessfully() {
-        when(productRepository.existsById(1L)).thenReturn(true);
+    void shouldThrowExceptionWhenFindingNonExistingProduct() {
+        when(productRepository.findById(1L)).thenReturn(java.util.Optional.empty());
 
-        productService.delete(1L);
+        try {
+            productService.findById(1L);
+        } catch (ResourceNotFoundException e) {
+            assertEquals("Product not found with id: 1", e.getMessage());
+        }
     }
 
     @Test
@@ -227,14 +268,22 @@ public class ProductServiceImplTest {
     }
 
     @Test
-    void shouldIgnoreProductWithEmptyMaterials() {
-        Product product = new Product(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>());
-        product.setMaterials(new ArrayList<>());
+    void shouldDeleteProductSuccessfully() {
+        when(productRepository.existsById(1L)).thenReturn(true);
 
-        when(productRepository.findAllWithMaterials()).thenReturn(new ArrayList<>(List.of(product)));
-
-        List<ProductResponseDTO> response = productService.findAll();
-
-        assertTrue(response.isEmpty());
+        productService.delete(1L);
     }
+
+    @Test
+    void shouldThrowExceptionWhenDeletingNonExistingProduct() {
+        Long id = 1L;
+        when(productRepository.existsById(id)).thenReturn(false);
+
+        try {
+            productService.delete(id);
+        } catch (ResourceNotFoundException e) {
+            assertEquals("Product not found with id: 1", e.getMessage());
+        }
+    }
+
 }
