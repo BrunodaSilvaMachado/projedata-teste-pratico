@@ -29,13 +29,13 @@ public class ProductionServiceImpl implements ProductionService {
     @Override
     public ProductionSuggestionResponseDTO generateProductionSuggestionResponseDTO() {
         // 1. Fetch products with materials (avoid N+1 problem)
-        List<Product> products = productRepository.findAllWithMaterials();
+        ArrayList<Product> products = (ArrayList<Product>) productRepository.findAllWithMaterials();
 
-        // 2. Create virtal stock map for raw materials
-        Map<Long, BigDecimal> avaliableStock = new HashMap<>();
+        // 2. Create virtual stock map for raw materials
+        Map<Long, BigDecimal> availableStock = new HashMap<>();
         List<RawMaterial> rawMaterials = rawMaterialRepository.findAll();
         for (RawMaterial rm : rawMaterials) {
-            avaliableStock.put(rm.getId(), rm.getStockQuantity());
+            availableStock.put(rm.getId(), rm.getStockQuantity());
         }
 
         // 3. Sort products by biggest price first
@@ -48,7 +48,7 @@ public class ProductionServiceImpl implements ProductionService {
         // TODO: Refatorar os itens 4, 5, 6 em métodos separados para melhorar a legibilidade e manutenção do código.
         for (Product product : products) {
 
-            if (product.getMaterials() == null || product.getMaterials().isEmpty()) {
+            if (product.getMaterials().isEmpty()) {
                 continue;
             }
 
@@ -60,7 +60,7 @@ public class ProductionServiceImpl implements ProductionService {
                 Long materialId = pm.getRawMaterial().getId();
                 BigDecimal requiredQuantity = pm.getQuantityRequired();
 
-                BigDecimal stock = avaliableStock.getOrDefault(materialId, BigDecimal.ZERO);
+                BigDecimal stock = availableStock.getOrDefault(materialId, BigDecimal.ZERO);
 
                 if (requiredQuantity.compareTo(BigDecimal.ZERO) == 0) {
                     continue;
@@ -78,7 +78,7 @@ public class ProductionServiceImpl implements ProductionService {
                 Long materialId = pm.getRawMaterial().getId();
                 BigDecimal requiredQuantity = pm.getQuantityRequired();
                 BigDecimal totalRequired = requiredQuantity.multiply(BigDecimal.valueOf(maxUnits));
-                avaliableStock.put(materialId, avaliableStock.get(materialId).subtract(totalRequired));
+                availableStock.put(materialId, availableStock.get(materialId).subtract(totalRequired));
             }
 
             BigDecimal productTotal = product.getPrice().multiply(BigDecimal.valueOf(maxUnits));
