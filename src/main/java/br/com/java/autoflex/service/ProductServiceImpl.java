@@ -58,7 +58,10 @@ public class ProductServiceImpl implements ProductService  {
         existing.setCode(productRequestDTO.getCode());
         existing.setName(productRequestDTO.getName());
         existing.setPrice(productRequestDTO.getPrice());
-        existing.setMaterials(new ArrayList<>());
+        // clear the existing list so that orphanRemoval can delete rows from the database
+        existing.getMaterials().clear();
+        // flush to ensure DELETE is executed before INSERT
+        productRepository.flush();
 
         for (ProductMaterialRequestDTO materialDTO: productRequestDTO.getMaterials()) {
             RawMaterial material = rawMaterialRepository.findById(materialDTO.getRawMaterialId())
@@ -70,7 +73,6 @@ public class ProductServiceImpl implements ProductService  {
                     .build();
             existing.getMaterials().add(productMaterial);
         }
-        //TODO: Melhorar lógica de update para não apagar e recriar materiais, mas sim atualizar os existentes
         Product savedProduct = productRepository.save(existing);
         return productMapper.toResponseDTO(savedProduct);
     }

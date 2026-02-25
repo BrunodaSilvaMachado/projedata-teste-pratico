@@ -2,6 +2,7 @@ package br.com.java.autoflex.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -139,7 +140,7 @@ public class ProductServiceImplTest {
 
     @Test
     void shouldUpdateProductWithMaterials() {
-        // Produto existente
+        // Produto existente sem materiais
         Product existing = new Product(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>());
 
         // DTO de requisição com materiais
@@ -169,6 +170,41 @@ public class ProductServiceImplTest {
         ProductMaterial pm = existing.getMaterials().get(0);
         assertEquals(2L, pm.getRawMaterial().getId());
         assertEquals(new BigDecimal("10"), pm.getQuantityRequired());
+    }
+
+    @Test
+    void shouldReplaceExistingMaterialWithoutDuplication() {
+        // Produto já possui um material relacionado
+        RawMaterial originalRaw = new RawMaterial(2L, "Steel", "STL01", new BigDecimal("1000"), "kg");
+        Product existing = new Product(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>());
+        ProductMaterial oldPm = new ProductMaterial(1L, existing, originalRaw, new BigDecimal("5"));
+        existing.getMaterials().add(oldPm);
+
+        // DTO de requisição com o mesmo raw material (id=2)
+        ProductRequestDTO requestDTO = new ProductRequestDTO();
+        requestDTO.setCode("CAR01");
+        requestDTO.setName("Car Updated");
+        requestDTO.setPrice(new BigDecimal("1200"));
+        ProductMaterialRequestDTO materialDTO = new ProductMaterialRequestDTO();
+        materialDTO.setRawMaterialId(2L);
+        materialDTO.setQuantityRequired(new BigDecimal("10"));
+        requestDTO.setMaterials(new ArrayList<>(List.of(materialDTO)));
+
+        when(productRepository.findById(1L)).thenReturn(java.util.Optional.of(existing));
+        when(rawMaterialRepository.findById(2L)).thenReturn(java.util.Optional.of(originalRaw));
+        when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        when(productMapper.toResponseDTO(any(Product.class)))
+                .thenReturn(new ProductResponseDTO(1L, "CAR01", "Car Updated", new BigDecimal("1200"), new ArrayList<>()));
+
+        ProductResponseDTO response = productService.update(1L, requestDTO);
+
+        assertNotNull(response);
+        // deve haver apenas um registro no list de materiais
+        assertEquals(1, existing.getMaterials().size());
+        ProductMaterial pm = existing.getMaterials().get(0);
+        // a quantidade foi atualizada e o objeto antigo foi removido
+        assertEquals(new BigDecimal("10"), pm.getQuantityRequired());
+        assertNotSame(oldPm, pm);
     }
 
     @Test
