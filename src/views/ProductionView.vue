@@ -125,8 +125,8 @@ const formatCurrency = (value) => {
           <tr v-for="item in productions" :key="item.productName">
             <td>{{ item.productName }}</td>
             <td>{{ item.quantityToProduce }}</td>
-            <td>R$ {{ formatCurrency(item.unitPrice) }}</td>
-            <td>R$ {{ formatCurrency(item.totalValue) }}</td>
+            <td>{{ formatCurrency(item.unitPrice) }}</td>
+            <td>{{ formatCurrency(item.totalValue) }}</td>
           </tr>
         </tbody>
       </table>
