@@ -1,14 +1,22 @@
 <script setup>
+import { ref } from 'vue'
 import Sidebar from './SidebarLayout.vue'
 import Topbar from './TopbarLayout.vue'
+
+const isSidebarOpen = ref(true)
+
+const toggleSidebar = () => {
+  isSidebarOpen.value = !isSidebarOpen.value
+}
 </script>
 
 <template>
   <div class="layout">
-    <Sidebar />
+    <Sidebar :isOpen="isSidebarOpen"
+      @close="isSidebarOpen = false"/>
 
     <div class="main">
-      <Topbar />
+      <Topbar @toggle-sidebar="toggleSidebar" />
       <div class="content">
         <router-view />
       </div>

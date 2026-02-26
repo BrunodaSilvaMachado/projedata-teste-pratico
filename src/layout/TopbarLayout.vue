@@ -8,10 +8,15 @@ const titles = {
   '/products': 'Gestão de Produtos',
   '/raw-materials': 'Gestão de Matérias-Primas'
 }
+
+const emit = defineEmits(['toggleSidebar'])
 </script>
 
 <template>
   <div class="topbar">
+    <button class="menu-btn" @click="emit('toggleSidebar')">
+      ☰
+  </button>
     <div class="title">
       {{ titles[route.path] }}
     </div>
@@ -41,4 +46,12 @@ const titles = {
   font-size: 0.9rem;
   color: #64748b;
 }
+
+.menu-btn {
+  font-size: 1.4rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
 </style>
