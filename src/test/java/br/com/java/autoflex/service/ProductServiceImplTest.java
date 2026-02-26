@@ -3,14 +3,13 @@ package br.com.java.autoflex.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,16 +17,22 @@ import org.junit.jupiter.api.Test;
 import br.com.java.autoflex.domain.Product;
 import br.com.java.autoflex.domain.ProductMaterial;
 import br.com.java.autoflex.domain.RawMaterial;
-import br.com.java.autoflex.dto.ProductMaterialRequestDTO;
 import br.com.java.autoflex.dto.ProductRequestDTO;
 import br.com.java.autoflex.dto.ProductResponseDTO;
 import br.com.java.autoflex.exception.BusinessException;
 import br.com.java.autoflex.exception.ResourceNotFoundException;
+import br.com.java.autoflex.fixture.ProductTestFixture;
+import br.com.java.autoflex.fixture.RawMaterialTestFixture;
+import br.com.java.autoflex.fixture.TestConstants;
 import br.com.java.autoflex.mapper.ProductMapper;
 import br.com.java.autoflex.repository.ProductRepository;
 import br.com.java.autoflex.repository.RawMaterialRepository;
 
-public class ProductServiceImplTest {
+/**
+ * Unit tests for ProductServiceImpl.
+ * Tests CRUD operations and business logic for product management.
+ */
+class ProductServiceImplTest {
     private ProductServiceImpl productService;
     private ProductRepository productRepository;
     private ProductMapper productMapper;
@@ -42,284 +47,242 @@ public class ProductServiceImplTest {
     }
 
     @Test
-    void shouldCreateProductSuccessfully() {
-        // Matéria-prima
-        RawMaterial iron = new RawMaterial(1L, "Iron", "IRON01", new BigDecimal("100"), "kg");
+    void testCreateProductSuccessfully() {
+        RawMaterial rawMaterial = RawMaterialTestFixture.createRawMaterial(
+                TestConstants.RAW_MATERIAL_ID, TestConstants.RAW_MATERIAL_NAME_IRON, 
+                TestConstants.RAW_MATERIAL_CODE_IRON, TestConstants.RAW_MATERIAL_STOCK, TestConstants.UNIT_KG);
 
-        // DTO de requisição
-        ProductRequestDTO requestDTO = new ProductRequestDTO();
-        requestDTO.setCode("CAR01");
-        requestDTO.setName("Car");
-        requestDTO.setPrice(new BigDecimal("1000"));
-        ProductMaterialRequestDTO materialDTO = new ProductMaterialRequestDTO();
-        materialDTO.setRawMaterialId(1L);
-        materialDTO.setQuantityRequired(new BigDecimal("50"));
-        requestDTO.setMaterials(new ArrayList<>(List.of(materialDTO)));
+        ProductRequestDTO requestDTO = ProductTestFixture.createProductRequest(
+                TestConstants.PRODUCT_CODE, TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE,
+                new ArrayList<>(List.of(ProductTestFixture.createMaterialRequest(
+                        TestConstants.RAW_MATERIAL_ID, TestConstants.QUANTITY_50))));
 
-        // Produto esperado
-        Product product = new Product(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<ProductMaterial>());
-        ProductMaterial pm = new ProductMaterial(1L, product, iron, new BigDecimal("50"));
-        product.setMaterials(new ArrayList<>(List.of(pm)));
+        Product product = ProductTestFixture.createProduct(
+                TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE);
+        ProductMaterial pm = ProductTestFixture.createProductMaterial(1L, product, rawMaterial, TestConstants.QUANTITY_50);
+        product.getMaterials().add(pm);
 
-        when(productRepository.existsByCode("CAR01")).thenReturn(false);
-        when(rawMaterialRepository.findById(1L)).thenReturn(java.util.Optional.of(iron));
+        when(productRepository.existsByCode(TestConstants.PRODUCT_CODE)).thenReturn(false);
+        when(rawMaterialRepository.findById(TestConstants.RAW_MATERIAL_ID)).thenReturn(Optional.of(rawMaterial));
         when(productRepository.save(any(Product.class))).thenReturn(product);
         when(productMapper.toResponseDTO(product))
-                .thenReturn(new ProductResponseDTO(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>()));
+                .thenReturn(ProductTestFixture.createProductResponse(
+                        TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, 
+                        TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE));
 
         ProductResponseDTO response = productService.create(requestDTO);
 
         assertNotNull(response);
+        assertEquals(TestConstants.PRODUCT_ID, response.getId());
     }
 
     @Test
-    void shouldNotCreateProductWithDuplicateCode() {
-        // DTO de requisição
-        ProductRequestDTO requestDTO = new ProductRequestDTO();
-        requestDTO.setCode("CAR01");
-        requestDTO.setName("Car");
-        requestDTO.setPrice(new BigDecimal("1000"));
-        ProductMaterialRequestDTO materialDTO = new ProductMaterialRequestDTO();
-        materialDTO.setRawMaterialId(1L);
-        materialDTO.setQuantityRequired(new BigDecimal("50"));
-        requestDTO.setMaterials(new ArrayList<>(List.of(materialDTO)));
+    void testCreateProductWithDuplicateCodeThrowsException() {
+        ProductRequestDTO requestDTO = ProductTestFixture.createProductRequest(
+                TestConstants.PRODUCT_CODE, TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE);
 
-        when(productRepository.existsByCode("CAR01")).thenReturn(true);
+        when(productRepository.existsByCode(TestConstants.PRODUCT_CODE)).thenReturn(true);
 
         try {
             productService.create(requestDTO);
-        } catch (BusinessException e) {
-            assertEquals("Product code already exists", e.getMessage());
+        } catch (BusinessException ex) {
+            assertEquals(TestConstants.PRODUCT_CODE_ALREADY_EXISTS, ex.getMessage());
         }
     }
 
     @Test
-    void shouldNotCreateProductWithNonExistingRawMaterial() {
-        // DTO de requisição
-        ProductRequestDTO requestDTO = new ProductRequestDTO();
-        requestDTO.setCode("CAR01");
-        requestDTO.setName("Car");
-        requestDTO.setPrice(new BigDecimal("1000"));
-        ProductMaterialRequestDTO materialDTO = new ProductMaterialRequestDTO();
-        materialDTO.setRawMaterialId(1L);
-        materialDTO.setQuantityRequired(new BigDecimal("50"));
-        requestDTO.setMaterials(new ArrayList<>(List.of(materialDTO)));
+    void testCreateProductWithNonExistentMaterialThrowsException() {
+        ProductRequestDTO requestDTO = ProductTestFixture.createProductRequest(
+                TestConstants.PRODUCT_CODE, TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE,
+                new ArrayList<>(List.of(ProductTestFixture.createMaterialRequest(
+                        TestConstants.RAW_MATERIAL_ID, TestConstants.QUANTITY_50))));
 
-        when(productRepository.existsByCode("CAR01")).thenReturn(false);
-        when(rawMaterialRepository.findById(1L)).thenReturn(java.util.Optional.empty());
+        when(productRepository.existsByCode(TestConstants.PRODUCT_CODE)).thenReturn(false);
+        when(rawMaterialRepository.findById(TestConstants.RAW_MATERIAL_ID)).thenReturn(Optional.empty());
 
         try {
             productService.create(requestDTO);
-        } catch (ResourceNotFoundException e) {
-            assertEquals("Raw material not found with id: 1", e.getMessage());
+        } catch (ResourceNotFoundException ex) {
+            assertEquals(TestConstants.RAW_MATERIAL_NOT_FOUND + TestConstants.RAW_MATERIAL_ID, ex.getMessage());
         }
     }
 
     @Test
-    void shouldUpdateProductSuccessfully() {
-        // Produto existente
-        Product existing = new Product(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>());
+    void testUpdateProductSuccessfully() {
+        Product existing = ProductTestFixture.createProduct(
+                TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE);
 
-        // DTO de requisição
-        ProductRequestDTO requestDTO = new ProductRequestDTO();
-        requestDTO.setCode("CAR01");
-        requestDTO.setName("Car Updated");
-        requestDTO.setPrice(new BigDecimal("1200"));
-        requestDTO.setMaterials(new ArrayList<>());
+        ProductRequestDTO requestDTO = ProductTestFixture.createProductRequest(
+                TestConstants.PRODUCT_CODE, "Car Updated", TestConstants.PRODUCT_PRICE_UPDATED);
 
-        when(productRepository.findById(1L)).thenReturn(java.util.Optional.of(existing));
+        when(productRepository.findById(TestConstants.PRODUCT_ID)).thenReturn(Optional.of(existing));
         when(productRepository.save(existing)).thenReturn(existing);
-        when(productMapper.toResponseDTO(existing)).thenReturn(
-                new ProductResponseDTO(1L, "CAR01", "Car Updated", new BigDecimal("1200"), new ArrayList<>()));
+        when(productMapper.toResponseDTO(existing))
+                .thenReturn(ProductTestFixture.createProductResponse(
+                        TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, "Car Updated", TestConstants.PRODUCT_PRICE_UPDATED));
 
-        ProductResponseDTO response = productService.update(1L, requestDTO);
+        ProductResponseDTO response = productService.update(TestConstants.PRODUCT_ID, requestDTO);
 
-        assertTrue(response != null);
+        assertNotNull(response);
         assertEquals("Car Updated", response.getName());
     }
 
     @Test
-    void shouldUpdateProductWithMaterials() {
-        // Produto existente sem materiais
-        Product existing = new Product(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>());
+    void testUpdateProductWithMaterialsSuccessfully() {
+        Product existing = ProductTestFixture.createProduct(
+                TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE);
 
-        // DTO de requisição com materiais
-        ProductRequestDTO requestDTO = new ProductRequestDTO();
-        requestDTO.setCode("CAR01");
-        requestDTO.setName("Car Updated");
-        requestDTO.setPrice(new BigDecimal("1200"));
-        ProductMaterialRequestDTO materialDTO = new ProductMaterialRequestDTO();
-        materialDTO.setRawMaterialId(2L);
-        materialDTO.setQuantityRequired(new BigDecimal("10"));
-        requestDTO.setMaterials(new ArrayList<>(List.of(materialDTO)));
+        ProductRequestDTO requestDTO = ProductTestFixture.createProductRequest(
+                TestConstants.PRODUCT_CODE, "Car Updated", TestConstants.PRODUCT_PRICE_UPDATED,
+                new ArrayList<>(List.of(ProductTestFixture.createMaterialRequest(
+                        TestConstants.RAW_MATERIAL_ID_TWO, TestConstants.QUANTITY_10))));
 
-        // Matéria-prima existente
-        RawMaterial raw = new RawMaterial(2L, "Steel", "STL01", new BigDecimal("1000"), "kg");
+        RawMaterial rawMaterial = RawMaterialTestFixture.createRawMaterial(
+                TestConstants.RAW_MATERIAL_ID_TWO, TestConstants.RAW_MATERIAL_NAME, 
+                TestConstants.RAW_MATERIAL_CODE, TestConstants.RAW_MATERIAL_STOCK_LARGE, TestConstants.UNIT_KG);
 
-        when(productRepository.findById(1L)).thenReturn(java.util.Optional.of(existing));
-        when(rawMaterialRepository.findById(2L)).thenReturn(java.util.Optional.of(raw));
+        when(productRepository.findById(TestConstants.PRODUCT_ID)).thenReturn(Optional.of(existing));
+        when(rawMaterialRepository.findById(TestConstants.RAW_MATERIAL_ID_TWO)).thenReturn(Optional.of(rawMaterial));
         when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
         when(productMapper.toResponseDTO(any(Product.class)))
-                .thenReturn(new ProductResponseDTO(1L, "CAR01", "Car Updated", new BigDecimal("1200"), new ArrayList<>()));
+                .thenReturn(ProductTestFixture.createProductResponse(
+                        TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, "Car Updated", TestConstants.PRODUCT_PRICE_UPDATED));
 
-        ProductResponseDTO response = productService.update(1L, requestDTO);
+        ProductResponseDTO response = productService.update(TestConstants.PRODUCT_ID, requestDTO);
 
         assertNotNull(response);
-        // o objeto 'existing' deve ter recebido 1 ProductMaterial com os valores corretos
         assertEquals(1, existing.getMaterials().size());
         ProductMaterial pm = existing.getMaterials().get(0);
-        assertEquals(2L, pm.getRawMaterial().getId());
-        assertEquals(new BigDecimal("10"), pm.getQuantityRequired());
+        assertEquals(TestConstants.RAW_MATERIAL_ID_TWO, pm.getRawMaterial().getId());
+        assertEquals(TestConstants.QUANTITY_10, pm.getQuantityRequired());
     }
 
     @Test
-    void shouldReplaceExistingMaterialWithoutDuplication() {
-        // Produto já possui um material relacionado
-        RawMaterial originalRaw = new RawMaterial(2L, "Steel", "STL01", new BigDecimal("1000"), "kg");
-        Product existing = new Product(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>());
-        ProductMaterial oldPm = new ProductMaterial(1L, existing, originalRaw, new BigDecimal("5"));
+    void testUpdateProductReplacesExistingMaterialWithoutDuplication() {
+        RawMaterial rawMaterial = RawMaterialTestFixture.createRawMaterial(
+                TestConstants.RAW_MATERIAL_ID_TWO, TestConstants.RAW_MATERIAL_NAME, 
+                TestConstants.RAW_MATERIAL_CODE, TestConstants.RAW_MATERIAL_STOCK_LARGE, TestConstants.UNIT_KG);
+
+        Product existing = ProductTestFixture.createProduct(
+                TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE);
+        ProductMaterial oldPm = ProductTestFixture.createProductMaterial(1L, existing, rawMaterial, TestConstants.QUANTITY_50);
         existing.getMaterials().add(oldPm);
 
-        // DTO de requisição com o mesmo raw material (id=2)
-        ProductRequestDTO requestDTO = new ProductRequestDTO();
-        requestDTO.setCode("CAR01");
-        requestDTO.setName("Car Updated");
-        requestDTO.setPrice(new BigDecimal("1200"));
-        ProductMaterialRequestDTO materialDTO = new ProductMaterialRequestDTO();
-        materialDTO.setRawMaterialId(2L);
-        materialDTO.setQuantityRequired(new BigDecimal("10"));
-        requestDTO.setMaterials(new ArrayList<>(List.of(materialDTO)));
+        ProductRequestDTO requestDTO = ProductTestFixture.createProductRequest(
+                TestConstants.PRODUCT_CODE, "Car Updated", TestConstants.PRODUCT_PRICE_UPDATED,
+                new ArrayList<>(List.of(ProductTestFixture.createMaterialRequest(
+                        TestConstants.RAW_MATERIAL_ID_TWO, TestConstants.QUANTITY_10))));
 
-        when(productRepository.findById(1L)).thenReturn(java.util.Optional.of(existing));
-        when(rawMaterialRepository.findById(2L)).thenReturn(java.util.Optional.of(originalRaw));
+        when(productRepository.findById(TestConstants.PRODUCT_ID)).thenReturn(Optional.of(existing));
+        when(rawMaterialRepository.findById(TestConstants.RAW_MATERIAL_ID_TWO)).thenReturn(Optional.of(rawMaterial));
         when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
         when(productMapper.toResponseDTO(any(Product.class)))
-                .thenReturn(new ProductResponseDTO(1L, "CAR01", "Car Updated", new BigDecimal("1200"), new ArrayList<>()));
+                .thenReturn(ProductTestFixture.createProductResponse(
+                        TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, "Car Updated", TestConstants.PRODUCT_PRICE_UPDATED));
 
-        ProductResponseDTO response = productService.update(1L, requestDTO);
+        ProductResponseDTO response = productService.update(TestConstants.PRODUCT_ID, requestDTO);
 
         assertNotNull(response);
-        // deve haver apenas um registro no list de materiais
         assertEquals(1, existing.getMaterials().size());
         ProductMaterial pm = existing.getMaterials().get(0);
-        // a quantidade foi atualizada e o objeto antigo foi removido
-        assertEquals(new BigDecimal("10"), pm.getQuantityRequired());
+        assertEquals(TestConstants.QUANTITY_10, pm.getQuantityRequired());
         assertNotSame(oldPm, pm);
     }
 
     @Test
-    void shouldNotUpdateNonExistingProduct() {
-        // DTO de requisição
-        ProductRequestDTO requestDTO = new ProductRequestDTO();
-        requestDTO.setCode("CAR01");
-        requestDTO.setName("Car Updated");
-        requestDTO.setPrice(new BigDecimal("1200"));
-        requestDTO.setMaterials(new ArrayList<>());
+    void testUpdateNonExistentProductThrowsException() {
+        ProductRequestDTO requestDTO = ProductTestFixture.createProductRequest(
+                TestConstants.PRODUCT_CODE, TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE);
 
-        when(productRepository.findById(1L)).thenReturn(java.util.Optional.empty());
+        when(productRepository.findById(TestConstants.PRODUCT_ID)).thenReturn(Optional.empty());
 
         try {
-            productService.update(1L, requestDTO);
-        } catch (ResourceNotFoundException e) {
-            assertEquals("Product not found with id: 1", e.getMessage());
+            productService.update(TestConstants.PRODUCT_ID, requestDTO);
+        } catch (ResourceNotFoundException ex) {
+            assertEquals(TestConstants.PRODUCT_NOT_FOUND + TestConstants.PRODUCT_ID, ex.getMessage());
         }
     }
 
     @Test
-    void shouldNotUpdateNonExistingRawMaterial() {
-        // DTO de requisição
-        ProductRequestDTO requestDTO = new ProductRequestDTO();
-        requestDTO.setCode("CAR01");
-        requestDTO.setName("Car Updated");
-        requestDTO.setPrice(new BigDecimal("1200"));
-        ProductMaterialRequestDTO materialDTO = new ProductMaterialRequestDTO();
-        materialDTO.setRawMaterialId(1L);
-        materialDTO.setQuantityRequired(new BigDecimal("50"));
-        requestDTO.setMaterials(new ArrayList<>(List.of(materialDTO)));
+    void testUpdateProductWithNonExistentMaterialThrowsException() {
+        Product existing = ProductTestFixture.createProduct(
+                TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE);
 
-        // Produto existente
-        Product existing = new Product(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>());
+        ProductRequestDTO requestDTO = ProductTestFixture.createProductRequest(
+                TestConstants.PRODUCT_CODE, TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE,
+                new ArrayList<>(List.of(ProductTestFixture.createMaterialRequest(
+                        TestConstants.RAW_MATERIAL_ID, TestConstants.QUANTITY_50))));
 
-        when(productRepository.findById(1L)).thenReturn(java.util.Optional.of(existing));
-        when(rawMaterialRepository.findById(1L)).thenReturn(java.util.Optional.empty());
+        when(productRepository.findById(TestConstants.PRODUCT_ID)).thenReturn(Optional.of(existing));
+        when(rawMaterialRepository.findById(TestConstants.RAW_MATERIAL_ID)).thenReturn(Optional.empty());
 
         try {
-            productService.update(1L, requestDTO);
-        } catch (ResourceNotFoundException e) {
-            assertEquals("Raw material not found with id: 1", e.getMessage());
+            productService.update(TestConstants.PRODUCT_ID, requestDTO);
+        } catch (ResourceNotFoundException ex) {
+            assertEquals(TestConstants.RAW_MATERIAL_NOT_FOUND + TestConstants.RAW_MATERIAL_ID, ex.getMessage());
         }
     }
 
     @Test
-    void shouldFindAllProductsSuccessfully() {
-        // Produto existente
-        Product product = new Product(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>());
+    void testFindAllProductsSuccessfully() {
+        Product product = ProductTestFixture.createProduct(
+                TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE);
 
         when(productRepository.findAllWithMaterials()).thenReturn(new ArrayList<>(List.of(product)));
         when(productMapper.toResponseDTO(product))
-                .thenReturn(new ProductResponseDTO(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>()));
+                .thenReturn(ProductTestFixture.createProductResponse(
+                        TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, 
+                        TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE));
 
         List<ProductResponseDTO> response = productService.findAll();
 
-        assertTrue(response != null);
+        assertNotNull(response);
         assertEquals(1, response.size());
     }
 
     @Test
-    void shouldFindByIdSuccessfully() {
-        // Produto existente
-        Product product = new Product(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>());
+    void testFindByIdSuccessfully() {
+        Product product = ProductTestFixture.createProduct(
+                TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE);
 
-        when(productRepository.findById(1L)).thenReturn(java.util.Optional.of(product));
+        when(productRepository.findById(TestConstants.PRODUCT_ID)).thenReturn(Optional.of(product));
         when(productMapper.toResponseDTO(product))
-                .thenReturn(new ProductResponseDTO(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>()));
+                .thenReturn(ProductTestFixture.createProductResponse(
+                        TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, 
+                        TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE));
 
-        ProductResponseDTO response = productService.findById(1L);
+        ProductResponseDTO response = productService.findById(TestConstants.PRODUCT_ID);
 
-        assertTrue(response != null);
-        assertEquals("CAR01", response.getCode());
+        assertNotNull(response);
+        assertEquals(TestConstants.PRODUCT_CODE, response.getCode());
     }
 
     @Test
-    void shouldThrowExceptionWhenFindingNonExistingProduct() {
-        when(productRepository.findById(1L)).thenReturn(java.util.Optional.empty());
+    void testFindNonExistentProductThrowsException() {
+        when(productRepository.findById(TestConstants.PRODUCT_ID)).thenReturn(Optional.empty());
 
         try {
-            productService.findById(1L);
-        } catch (ResourceNotFoundException e) {
-            assertEquals("Product not found with id: 1", e.getMessage());
+            productService.findById(TestConstants.PRODUCT_ID);
+        } catch (ResourceNotFoundException ex) {
+            assertEquals(TestConstants.PRODUCT_NOT_FOUND + TestConstants.PRODUCT_ID, ex.getMessage());
         }
     }
 
     @Test
-    void shouldThrowExceptionWhenDeletingNonExistingRawMaterial() {
-        Long id = 1L;
-        when(rawMaterialRepository.existsById(id)).thenReturn(false);
+    void testDeleteProductSuccessfully() {
+        when(productRepository.existsById(TestConstants.PRODUCT_ID)).thenReturn(true);
 
-        try {
-            productService.delete(id);
-        } catch (ResourceNotFoundException e) {
-            assertEquals("Product not found with id: 1", e.getMessage());
-        }
+        productService.delete(TestConstants.PRODUCT_ID);
     }
 
     @Test
-    void shouldDeleteProductSuccessfully() {
-        when(productRepository.existsById(1L)).thenReturn(true);
-
-        productService.delete(1L);
-    }
-
-    @Test
-    void shouldThrowExceptionWhenDeletingNonExistingProduct() {
-        Long id = 1L;
-        when(productRepository.existsById(id)).thenReturn(false);
+    void testDeleteNonExistentProductThrowsException() {
+        when(productRepository.existsById(TestConstants.PRODUCT_ID)).thenReturn(false);
 
         try {
-            productService.delete(id);
-        } catch (ResourceNotFoundException e) {
-            assertEquals("Product not found with id: 1", e.getMessage());
+            productService.delete(TestConstants.PRODUCT_ID);
+        } catch (ResourceNotFoundException ex) {
+            assertEquals(TestConstants.PRODUCT_NOT_FOUND + TestConstants.PRODUCT_ID, ex.getMessage());
         }
     }
-
 }

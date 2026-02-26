@@ -2,93 +2,105 @@ package br.com.java.autoflex.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import br.com.java.autoflex.dto.ProductMaterialRequestDTO;
 import br.com.java.autoflex.dto.ProductRequestDTO;
 import br.com.java.autoflex.dto.ProductResponseDTO;
+import br.com.java.autoflex.fixture.ProductTestFixture;
+import br.com.java.autoflex.fixture.TestConstants;
 import br.com.java.autoflex.service.ProductService;
 
-public class ProductControllerTest {
+/**
+ * Unit tests for ProductController.
+ * Tests REST endpoints for product management.
+ */
+class ProductControllerTest {
     private ProductService productService;
     private ProductController productController;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         productService = mock(ProductService.class);
         productController = new ProductController(productService);
     }
 
     @Test
-    public void shouldCreateProductSuccessfully() {
-        ProductRequestDTO requestDTO = new ProductRequestDTO();
-        requestDTO.setCode("CAR01");
-        requestDTO.setName("Car");
-        requestDTO.setPrice(new BigDecimal("1000"));
-        ProductMaterialRequestDTO materialDTO = new ProductMaterialRequestDTO();
-        materialDTO.setRawMaterialId(1L);
-        materialDTO.setQuantityRequired(new BigDecimal("50"));
-        requestDTO.setMaterials(new ArrayList<>(List.of(materialDTO)));
+    void testCreateProductSuccessfully() {
+        ProductRequestDTO requestDTO = ProductTestFixture.createProductRequest(
+                TestConstants.PRODUCT_CODE, TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE,
+                new ArrayList<>(List.of(ProductTestFixture.createMaterialRequest(
+                        TestConstants.RAW_MATERIAL_ID, TestConstants.QUANTITY_50))));
 
-        when(productService.create(requestDTO)).thenReturn(new ProductResponseDTO(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>()));
+        ProductResponseDTO responseDTO = ProductTestFixture.createProductResponse(
+                TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, 
+                TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE);
 
-        ProductResponseDTO responseDTO = productController.create(requestDTO);
-        assertNotNull(responseDTO);
-        assertEquals(1L, responseDTO.getId());
+        when(productService.create(requestDTO)).thenReturn(responseDTO);
+
+        ProductResponseDTO result = productController.create(requestDTO);
+
+        assertNotNull(result);
+        assertEquals(TestConstants.PRODUCT_ID, result.getId());
     }
 
     @Test
-    public void shouldFindAllProductsSuccessfully() {
-        ProductResponseDTO responseDTO = new ProductResponseDTO(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>());
+    void testFindAllProductsSuccessfully() {
+        ProductResponseDTO responseDTO = ProductTestFixture.createProductResponse(
+                TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, 
+                TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE);
+
         when(productService.findAll()).thenReturn(new ArrayList<>(List.of(responseDTO)));
 
         List<ProductResponseDTO> products = productController.findAll();
+
         assertNotNull(products);
-        assertTrue(products.size() > 0);
+        assertEquals(1, products.size());
     }
 
     @Test
-    public void shouldFindByIdSuccessfully() {
-        ProductResponseDTO responseDTO = new ProductResponseDTO(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>());
-        when(productService.findById(1L)).thenReturn(responseDTO);
+    void testFindByIdSuccessfully() {
+        ProductResponseDTO responseDTO = ProductTestFixture.createProductResponse(
+                TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, 
+                TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE);
 
-        ProductResponseDTO result = productController.findById(1L);
+        when(productService.findById(TestConstants.PRODUCT_ID)).thenReturn(responseDTO);
+
+        ProductResponseDTO result = productController.findById(TestConstants.PRODUCT_ID);
+
         assertNotNull(result);
-        assertEquals(1L, result.getId());
+        assertEquals(TestConstants.PRODUCT_ID, result.getId());
     }
 
     @Test
-    public void shouldUpdateProductWithMaterials() {
-        ProductRequestDTO requestDTO = new ProductRequestDTO();
-        requestDTO.setCode("CAR01");
-        requestDTO.setName("Car");
-        requestDTO.setPrice(new BigDecimal("1000"));
-        ProductMaterialRequestDTO materialDTO = new ProductMaterialRequestDTO();
-        materialDTO.setRawMaterialId(1L);
-        materialDTO.setQuantityRequired(new BigDecimal("50"));
-        requestDTO.setMaterials(new ArrayList<>(List.of(materialDTO)));
+    void testUpdateProductWithMaterialsSuccessfully() {
+        ProductRequestDTO requestDTO = ProductTestFixture.createProductRequest(
+                TestConstants.PRODUCT_CODE, TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE,
+                new ArrayList<>(List.of(ProductTestFixture.createMaterialRequest(
+                        TestConstants.RAW_MATERIAL_ID, TestConstants.QUANTITY_50))));
 
-        ProductResponseDTO responseDTO = new ProductResponseDTO(1L, "CAR01", "Car", new BigDecimal("1000"), new ArrayList<>());
-        when(productService.update(1L, requestDTO)).thenReturn(responseDTO);
+        ProductResponseDTO responseDTO = ProductTestFixture.createProductResponse(
+                TestConstants.PRODUCT_ID, TestConstants.PRODUCT_CODE, 
+                TestConstants.PRODUCT_NAME, TestConstants.PRODUCT_PRICE);
 
-        ProductResponseDTO result = productController.update(1L, requestDTO);
+        when(productService.update(TestConstants.PRODUCT_ID, requestDTO)).thenReturn(responseDTO);
+
+        ProductResponseDTO result = productController.update(TestConstants.PRODUCT_ID, requestDTO);
+
         assertNotNull(result);
-        assertEquals(1L, result.getId());
+        assertEquals(TestConstants.PRODUCT_ID, result.getId());
     }
 
     @Test
-    void shouldDeleteSuccessfully() {
-        productController.delete(1L);
-        verify(productService).delete(1L);
+    void testDeleteProductSuccessfully() {
+        productController.delete(TestConstants.PRODUCT_ID);
+        verify(productService).delete(TestConstants.PRODUCT_ID);
     }
 }

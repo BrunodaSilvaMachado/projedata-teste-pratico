@@ -8,6 +8,7 @@ import br.com.java.autoflex.domain.RawMaterial;
 import br.com.java.autoflex.dto.RawMaterialRequestDTO;
 import br.com.java.autoflex.dto.RawMaterialResponseDTO;
 import br.com.java.autoflex.exception.BusinessException;
+import br.com.java.autoflex.exception.ErrorMessages;
 import br.com.java.autoflex.exception.ResourceNotFoundException;
 import br.com.java.autoflex.mapper.RawMaterialMapper;
 import br.com.java.autoflex.repository.RawMaterialRepository;
@@ -22,7 +23,7 @@ public class RawMaterialServiceImpl implements RawMaterialService {
     @Override
     public RawMaterialResponseDTO create(RawMaterialRequestDTO request) {
         if (rawMaterialRepository.existsByCode(request.getCode())) {
-            throw new BusinessException("Raw material with code " + request.getCode() + " already exists.");   
+            throw new BusinessException(String.format(ErrorMessages.RAW_MATERIAL_CODE_ALREADY_EXISTS, request.getCode()));   
         }
 
         RawMaterial rawMaterial = rawMaterialMapper.toEntity(request);
@@ -33,7 +34,7 @@ public class RawMaterialServiceImpl implements RawMaterialService {
     @Override
     public RawMaterialResponseDTO update(Long id, RawMaterialRequestDTO request) {
         RawMaterial existingRawMaterial = rawMaterialRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Raw material with id " + id + " not found."));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.RAW_MATERIAL_NOT_FOUND + id));
 
         existingRawMaterial.setName(request.getName());
         existingRawMaterial.setCode(request.getCode());
@@ -47,7 +48,7 @@ public class RawMaterialServiceImpl implements RawMaterialService {
     @Override
     public void delete(Long id) {
         if (!rawMaterialRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Raw material with id " + id + " not found.");
+            throw new ResourceNotFoundException(ErrorMessages.RAW_MATERIAL_NOT_FOUND + id);
         }
         rawMaterialRepository.deleteById(id);
     }
@@ -55,7 +56,7 @@ public class RawMaterialServiceImpl implements RawMaterialService {
     @Override
     public RawMaterialResponseDTO findById(Long id) {
         RawMaterial rawMaterial = rawMaterialRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Raw material with id " + id + " not found."));
+            .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.RAW_MATERIAL_NOT_FOUND + id));
         return rawMaterialMapper.toResponseDTO(rawMaterial);
     }
 

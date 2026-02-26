@@ -2,7 +2,6 @@ package br.com.java.autoflex.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -17,53 +16,76 @@ import br.com.java.autoflex.dto.production.ProductionItemSuggestionDTO;
 import br.com.java.autoflex.dto.production.ProductionSuggestionResponseDTO;
 import br.com.java.autoflex.repository.ProductRepository;
 import br.com.java.autoflex.repository.RawMaterialRepository;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
+/**
+ * Service responsible for generating production suggestions based on available stock.
+ * Uses a greedy algorithm that prioritizes products with higher prices.
+ */
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ProductionServiceImpl implements ProductionService {
+
+    private static final int DEFAULT_MIN_PRODUCTION_UNITS = 1;
 
     private final ProductRepository productRepository;
     private final RawMaterialRepository rawMaterialRepository;
 
-    private Map<Long, BigDecimal> loadAvailableStock() {
-        Map<Long, BigDecimal> availableStock = new HashMap<>();
-        List<RawMaterial> rawMaterials = rawMaterialRepository.findAll();
-        for (RawMaterial rm : rawMaterials) {
-            availableStock.put(rm.getId(), rm.getStockQuantity());
-        }
-        return availableStock;
+    @Override
+    public ProductionSuggestionResponseDTO generateProductionSuggestionResponseDTO() {
+        List<Product> allProducts = productRepository.findAllWithMaterials();
+        Map<Long, BigDecimal> availableStock = loadAvailableStock();
+        
+        allProducts.sort(Comparator.comparing(Product::getPrice).reversed());
+
+        return generateProductionSuggestions(allProducts, availableStock);
     }
 
-    private int calculateMaxProducibleUnits(Product product, Map<Long, BigDecimal> availableStock){
-        int maxUnits = Integer.MAX_VALUE;
-        for (ProductMaterial pm : product.getMaterials()) {
+    /**
+     * Loads current stock quantities for all raw materials.
+     */
+    private Map<Long, BigDecimal> loadAvailableStock() {
+        Map<Long, BigDecimal> stock = new HashMap<>();
+        List<RawMaterial> rawMaterials = rawMaterialRepository.findAll();
+        for (RawMaterial rm : rawMaterials) {
+            stock.put(rm.getId(), rm.getStockQuantity());
+        }
+        return stock;
+    }
 
-            Long materialId = pm.getRawMaterial().getId();
+    /**
+     * Calculates maximum producible units based on available stock.
+     * Returns Integer.MAX_VALUE if product has no material constraints.
+     */
+    private int calculateMaxProducibleUnits(Product product, Map<Long, BigDecimal> availableStock) {
+        int maxUnits = Integer.MAX_VALUE;
+        
+        for (ProductMaterial pm : product.getMaterials()) {
             BigDecimal requiredQuantity = pm.getQuantityRequired();
 
-            BigDecimal stock = availableStock.getOrDefault(materialId, BigDecimal.ZERO);
-
             if (requiredQuantity.compareTo(BigDecimal.ZERO) == 0) {
-                // If the product requires 0 of this material, this material
-                // should not limit production — ignore it for limiting purposes.
                 continue;
             }
 
+            BigDecimal stock = availableStock.getOrDefault(pm.getRawMaterial().getId(), BigDecimal.ZERO);
             int possibleUnits = stock.divide(requiredQuantity, 0, RoundingMode.DOWN).intValue();
             maxUnits = Math.min(maxUnits, possibleUnits);
         }
+        
         return maxUnits;
     }
 
-    private ProductionItemSuggestionDTO generateProductionItemSuggestion(Product product, Map<Long, BigDecimal> availableStock, int unitsToProduce) {
+    /**
+     * Generates production item suggestion and updates virtual stock accordingly.
+     */
+    private ProductionItemSuggestionDTO generateProductionItem(
+            Product product, 
+            Map<Long, BigDecimal> availableStock, 
+            int unitsToProduce) {
+        
         BigDecimal totalValue = product.getPrice().multiply(BigDecimal.valueOf(unitsToProduce));
-        for (ProductMaterial pm : product.getMaterials()) {
-            Long materialId = pm.getRawMaterial().getId();
-            BigDecimal requiredQuantity = pm.getQuantityRequired().multiply(BigDecimal.valueOf(unitsToProduce));
-            // Update virtual stock
-            availableStock.put(materialId, availableStock.get(materialId).subtract(requiredQuantity));
-        }
+        updateVirtualStock(product, availableStock, unitsToProduce);
+        
         return new ProductionItemSuggestionDTO(
                 product.getId(),
                 product.getName(),
@@ -73,51 +95,62 @@ public class ProductionServiceImpl implements ProductionService {
         );
     }
 
-    private ProductionSuggestionResponseDTO generateProductionSuggestions(List<Product> products, Map<Long, BigDecimal> availableStock) {
-        List<ProductionItemSuggestionDTO> suggestions = new ArrayList<>();
+    /**
+     * Updates virtual stock by subtracting consumed materials.
+     */
+    private void updateVirtualStock(Product product, Map<Long, BigDecimal> availableStock, int unitsToProduce) {
+        for (ProductMaterial pm : product.getMaterials()) {
+            Long materialId = pm.getRawMaterial().getId();
+            BigDecimal consumedQuantity = pm.getQuantityRequired().multiply(BigDecimal.valueOf(unitsToProduce));
+            BigDecimal currentStock = availableStock.get(materialId);
+            availableStock.put(materialId, currentStock.subtract(consumedQuantity));
+        }
+    }
+
+    /**
+     * Generates production suggestions for all valid products.
+     * Iterates through products sorted by price (highest first) and calculates
+     * maximum producible units based on available stock.
+     */
+    private ProductionSuggestionResponseDTO generateProductionSuggestions(
+            List<Product> products, 
+            Map<Long, BigDecimal> availableStock) {
+        
+        List<ProductionItemSuggestionDTO> suggestions = new java.util.ArrayList<>();
         BigDecimal totalValue = BigDecimal.ZERO;
 
         for (Product product : products) {
-
-            if (product.getMaterials() == null || product.getMaterials().isEmpty()) {
+            if (!hasValidMaterials(product)) {
                 continue;
             }
 
-            // 5. Calculate max producible units based on available stock
             int maxUnits = calculateMaxProducibleUnits(product, availableStock);
-            // If no material imposed a limit (still Integer.MAX_VALUE),
-            // produce a single unit by default (avoids Integer.MAX_VALUE propagation).
-            if (maxUnits == Integer.MAX_VALUE) {
-                maxUnits = 1;
-            }
+            maxUnits = normalizeLimitedProduction(maxUnits);
 
             if (maxUnits <= 0) {
                 continue;
             }
 
-            // 6. Update virtual stock and calculate total value
-            ProductionItemSuggestionDTO suggestion = generateProductionItemSuggestion(product, availableStock, maxUnits);
-            BigDecimal productTotal = suggestion.getTotalValue();
-            totalValue = totalValue.add(productTotal);
-
+            ProductionItemSuggestionDTO suggestion = generateProductionItem(product, availableStock, maxUnits);
             suggestions.add(suggestion);
+            totalValue = totalValue.add(suggestion.getTotalValue());
         }
         
         return new ProductionSuggestionResponseDTO(suggestions, totalValue);
     }
 
-    @Override
-    public ProductionSuggestionResponseDTO generateProductionSuggestionResponseDTO() {
-        // 1. Fetch products with materials (avoid N+1 problem)
-        ArrayList<Product> products = (ArrayList<Product>) productRepository.findAllWithMaterials();
+    /**
+     * Checks if product has valid materials configured.
+     */
+    private boolean hasValidMaterials(Product product) {
+        return product.getMaterials() != null && !product.getMaterials().isEmpty();
+    }
 
-        // 2. Create virtual stock map for raw materials
-        Map<Long, BigDecimal> availableStock = loadAvailableStock();
-
-        // 3. Sort products by biggest price first
-        products.sort(Comparator.comparing(Product::getPrice).reversed());
-
-        // 4. Generate production suggestions
-        return generateProductionSuggestions(products, availableStock);
+    /**
+     * Normalizes production units: if no material imposed a limit,
+     * defaults to 1 unit to avoid Integer.MAX_VALUE propagation.
+     */
+    private int normalizeLimitedProduction(int maxUnits) {
+        return maxUnits == Integer.MAX_VALUE ? DEFAULT_MIN_PRODUCTION_UNITS : maxUnits;
     }
 }

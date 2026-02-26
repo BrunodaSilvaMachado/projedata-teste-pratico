@@ -2,74 +2,103 @@ package br.com.java.autoflex.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import br.com.java.autoflex.dto.RawMaterialRequestDTO;
 import br.com.java.autoflex.dto.RawMaterialResponseDTO;
+import br.com.java.autoflex.fixture.RawMaterialTestFixture;
+import br.com.java.autoflex.fixture.TestConstants;
 import br.com.java.autoflex.service.RawMaterialService;
 
-public class RawMaterialControllerTest {
+/**
+ * Unit tests for RawMaterialController.
+ * Tests REST endpoints for raw material management.
+ */
+class RawMaterialControllerTest {
     private RawMaterialService rawMaterialService;
     private RawMaterialController rawMaterialController;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         rawMaterialService = mock(RawMaterialService.class);
         rawMaterialController = new RawMaterialController(rawMaterialService);
     }
 
     @Test
-    public void shouldCreateRawMaterialSuccessfully() {
-        RawMaterialResponseDTO responseDTO = new RawMaterialResponseDTO(1L, "Steel","STL01", new BigDecimal("100"), "kg");
-        when(rawMaterialService.create(null)).thenReturn(responseDTO);
+    void testCreateRawMaterialSuccessfully() {
+        RawMaterialRequestDTO requestDTO = RawMaterialTestFixture.createRawMaterialRequest(
+                TestConstants.RAW_MATERIAL_NAME_IRON, TestConstants.RAW_MATERIAL_CODE_IRON, 
+                TestConstants.RAW_MATERIAL_STOCK, TestConstants.UNIT_KG);
 
-        RawMaterialResponseDTO result = rawMaterialController.create(null);
+        RawMaterialResponseDTO responseDTO = RawMaterialTestFixture.createRawMaterialResponse(
+                TestConstants.RAW_MATERIAL_ID, TestConstants.RAW_MATERIAL_NAME_IRON,  
+                TestConstants.RAW_MATERIAL_CODE_IRON, TestConstants.RAW_MATERIAL_STOCK, TestConstants.UNIT_KG);
+
+        when(rawMaterialService.create(requestDTO)).thenReturn(responseDTO);
+
+        RawMaterialResponseDTO result = rawMaterialController.create(requestDTO);
+
         assertNotNull(result);
-        assertEquals(responseDTO.getId(), result.getId());
+        assertEquals(TestConstants.RAW_MATERIAL_ID, result.getId());
     }
 
     @Test
-    public void shouldFindByIdSuccessfully() {
-        RawMaterialResponseDTO responseDTO = new RawMaterialResponseDTO(1L, "Steel","STL01", new BigDecimal("100"), "kg");
-        when(rawMaterialService.findById(1L)).thenReturn(responseDTO);
+    void testFindByIdSuccessfully() {
+        RawMaterialResponseDTO responseDTO = RawMaterialTestFixture.createRawMaterialResponse(
+                TestConstants.RAW_MATERIAL_ID, TestConstants.RAW_MATERIAL_NAME_IRON,  
+                TestConstants.RAW_MATERIAL_CODE_IRON, TestConstants.RAW_MATERIAL_STOCK, TestConstants.UNIT_KG);
 
-        RawMaterialResponseDTO result = rawMaterialController.findById(1L);
+        when(rawMaterialService.findById(TestConstants.RAW_MATERIAL_ID)).thenReturn(responseDTO);
+
+        RawMaterialResponseDTO result = rawMaterialController.findById(TestConstants.RAW_MATERIAL_ID);
+
         assertNotNull(result);
-        assertEquals(responseDTO.getId(), result.getId());
+        assertEquals(TestConstants.RAW_MATERIAL_ID, result.getId());
     }
 
     @Test
-    public void shouldFindAllRawMaterialsSuccessfully() {
-        RawMaterialResponseDTO responseDTO = new RawMaterialResponseDTO(1L, "Steel","STL01", new BigDecimal("100"), "kg");
+    void testFindAllRawMaterialsSuccessfully() {
+        RawMaterialResponseDTO responseDTO = RawMaterialTestFixture.createRawMaterialResponse(
+                TestConstants.RAW_MATERIAL_ID, TestConstants.RAW_MATERIAL_NAME_IRON,  
+                TestConstants.RAW_MATERIAL_CODE_IRON, TestConstants.RAW_MATERIAL_STOCK, TestConstants.UNIT_KG);
+
         when(rawMaterialService.findAll()).thenReturn(List.of(responseDTO));
 
         List<RawMaterialResponseDTO> rawMaterials = rawMaterialController.findAll();
+
         assertNotNull(rawMaterials);
-        assertTrue(rawMaterials.size() > 0);
-        assertEquals(1L, rawMaterials.get(0).getId());
+        assertEquals(1, rawMaterials.size());
+        assertEquals(TestConstants.RAW_MATERIAL_ID, rawMaterials.get(0).getId());
     }
 
     @Test
-    public void shouldUpdateRawMaterialSuccessfully() {
-        RawMaterialResponseDTO responseDTO = new RawMaterialResponseDTO(1L, "Steel","STL01", new BigDecimal("100"), "kg");
-        when(rawMaterialService.update(1L, null)).thenReturn(responseDTO);
+    void testUpdateRawMaterialSuccessfully() {
+        RawMaterialRequestDTO requestDTO = RawMaterialTestFixture.createRawMaterialRequest(
+                TestConstants.RAW_MATERIAL_NAME_IRON, TestConstants.RAW_MATERIAL_CODE_IRON, 
+                TestConstants.RAW_MATERIAL_STOCK, TestConstants.UNIT_KG);
 
-        RawMaterialResponseDTO result = rawMaterialController.update(1L, null);
+        RawMaterialResponseDTO responseDTO = RawMaterialTestFixture.createRawMaterialResponse(
+                TestConstants.RAW_MATERIAL_ID, TestConstants.RAW_MATERIAL_NAME_IRON,  
+                TestConstants.RAW_MATERIAL_CODE_IRON, TestConstants.RAW_MATERIAL_STOCK, TestConstants.UNIT_KG);
+
+        when(rawMaterialService.update(TestConstants.RAW_MATERIAL_ID, requestDTO)).thenReturn(responseDTO);
+
+        RawMaterialResponseDTO result = rawMaterialController.update(TestConstants.RAW_MATERIAL_ID, requestDTO);
+
         assertNotNull(result);
-        assertEquals(responseDTO.getId(), result.getId());
+        assertEquals(TestConstants.RAW_MATERIAL_ID, result.getId());
     }
 
     @Test
-    public void shouldDeleteRawMaterialSuccessfully() {
-       rawMaterialController.delete(1L);
-       verify(rawMaterialService).delete(1L);
+    void testDeleteRawMaterialSuccessfully() {
+        rawMaterialController.delete(TestConstants.RAW_MATERIAL_ID);
+        verify(rawMaterialService).delete(TestConstants.RAW_MATERIAL_ID);
     }
 }

@@ -12,6 +12,7 @@ import br.com.java.autoflex.dto.ProductMaterialRequestDTO;
 import br.com.java.autoflex.dto.ProductRequestDTO;
 import br.com.java.autoflex.dto.ProductResponseDTO;
 import br.com.java.autoflex.exception.BusinessException;
+import br.com.java.autoflex.exception.ErrorMessages;
 import br.com.java.autoflex.exception.ResourceNotFoundException;
 import br.com.java.autoflex.mapper.ProductMapper;
 import br.com.java.autoflex.repository.ProductRepository;
@@ -29,7 +30,7 @@ public class ProductServiceImpl implements ProductService  {
     @Override
     public ProductResponseDTO create(ProductRequestDTO productRequestDTO) {
         if (productRepository.existsByCode(productRequestDTO.getCode())){
-            throw new BusinessException("Product code already exists");
+            throw new BusinessException(ErrorMessages.PRODUCT_CODE_ALREADY_EXISTS);
         }
         Product product = Product.builder()
                 .code(productRequestDTO.getCode())
@@ -39,7 +40,7 @@ public class ProductServiceImpl implements ProductService  {
                 .build();
         for (ProductMaterialRequestDTO materialDTO: productRequestDTO.getMaterials()) {
             RawMaterial material = rawMaterialRepository.findById(materialDTO.getRawMaterialId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Raw material not found with id: " + materialDTO.getRawMaterialId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.RAW_MATERIAL_NOT_FOUND + materialDTO.getRawMaterialId()));
             ProductMaterial productMaterial = ProductMaterial.builder()
                     .product(product)
                     .rawMaterial(material)
@@ -54,7 +55,7 @@ public class ProductServiceImpl implements ProductService  {
     @Override
     public ProductResponseDTO update(Long id, ProductRequestDTO productRequestDTO) {
         Product existing = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.PRODUCT_NOT_FOUND + id));
         existing.setCode(productRequestDTO.getCode());
         existing.setName(productRequestDTO.getName());
         existing.setPrice(productRequestDTO.getPrice());
@@ -65,7 +66,7 @@ public class ProductServiceImpl implements ProductService  {
 
         for (ProductMaterialRequestDTO materialDTO: productRequestDTO.getMaterials()) {
             RawMaterial material = rawMaterialRepository.findById(materialDTO.getRawMaterialId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Raw material not found with id: " + materialDTO.getRawMaterialId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.RAW_MATERIAL_NOT_FOUND + materialDTO.getRawMaterialId()));
             ProductMaterial productMaterial = ProductMaterial.builder()
                     .product(existing)
                     .rawMaterial(material)
@@ -80,7 +81,7 @@ public class ProductServiceImpl implements ProductService  {
     @Override
     public ProductResponseDTO findById(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.PRODUCT_NOT_FOUND + id));
         return productMapper.toResponseDTO(product);
     }
 
@@ -93,7 +94,7 @@ public class ProductServiceImpl implements ProductService  {
     @Override
     public void delete(Long id) {
         if(!productRepository.existsById(id)){
-            throw new ResourceNotFoundException("Product not found with id: " + id);
+            throw new ResourceNotFoundException(ErrorMessages.PRODUCT_NOT_FOUND + id);
         }
         productRepository.deleteById(id);
     }

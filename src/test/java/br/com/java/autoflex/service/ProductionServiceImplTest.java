@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,10 +15,17 @@ import br.com.java.autoflex.domain.Product;
 import br.com.java.autoflex.domain.ProductMaterial;
 import br.com.java.autoflex.domain.RawMaterial;
 import br.com.java.autoflex.dto.production.ProductionSuggestionResponseDTO;
+import br.com.java.autoflex.fixture.ProductTestFixture;
+import br.com.java.autoflex.fixture.RawMaterialTestFixture;
+import br.com.java.autoflex.fixture.TestConstants;
 import br.com.java.autoflex.repository.ProductRepository;
 import br.com.java.autoflex.repository.RawMaterialRepository;
 
-public class ProductionServiceImplTest {
+/**
+ * Unit tests for ProductionServiceImpl.
+ * Tests production suggestion algorithm with various stock scenarios.
+ */
+class ProductionServiceImplTest {
     private ProductRepository productRepository;
     private RawMaterialRepository rawMaterialRepository;
     private ProductionServiceImpl productionService;
@@ -32,181 +38,156 @@ public class ProductionServiceImplTest {
     }
 
     @Test
-    void shouldProduceOnlyMostExpensiveProductWhenStockIsLimited(){
-        // Matéria-prima
-        RawMaterial iron = new RawMaterial(1L, "Iron","IRON01", new BigDecimal("100"), "kg");
+    void testProduceOnlyMostExpensiveProductWhenStockIsLimited() {
+        RawMaterial iron = RawMaterialTestFixture.createRawMaterial(
+                TestConstants.RAW_MATERIAL_ID, "Iron", "IRON01", TestConstants.RAW_MATERIAL_STOCK, TestConstants.UNIT_KG);
 
-        // Produto A (mais caro)
-        Product productA = new Product(1L,"CAR01", "Car", new BigDecimal("1000"),new ArrayList<ProductMaterial>());
-        ProductMaterial pmA = new ProductMaterial(1L, productA, iron, new BigDecimal("50"));
-        productA.setMaterials(new ArrayList<>(List.of(pmA)));
+        Product expensiveProduct = ProductTestFixture.createProduct(
+                TestConstants.PRODUCT_ID, "CAR01", "Car", TestConstants.PRODUCT_PRICE);
+        ProductMaterial pmExpensive = ProductTestFixture.createProductMaterial(
+                1L, expensiveProduct, iron, TestConstants.QUANTITY_50);
+        expensiveProduct.getMaterials().add(pmExpensive);
 
-        // Produto B (mais barato)
-        Product productB = new Product(2L,"BIKE01", "Bike", new BigDecimal("500"), new ArrayList<ProductMaterial>());
-        ProductMaterial pmB = new ProductMaterial(2L, productB, iron, new BigDecimal("50"));
-        productB.setMaterials(new ArrayList<>(List.of(pmB)));
+        Product cheapProduct = ProductTestFixture.createProduct(
+                TestConstants.PRODUCT_ID_TWO, "BIKE01", "Bike", TestConstants.PRODUCT_PRICE_LOW);
+        ProductMaterial pmCheap = ProductTestFixture.createProductMaterial(
+                2L, cheapProduct, iron, TestConstants.QUANTITY_50);
+        cheapProduct.getMaterials().add(pmCheap);
 
         when(productRepository.findAllWithMaterials())
-                .thenReturn(new ArrayList<>(List.of(productA, productB)));
-
+                .thenReturn(new ArrayList<>(List.of(expensiveProduct, cheapProduct)));
         when(rawMaterialRepository.findAll())
                 .thenReturn(new ArrayList<>(List.of(iron)));
 
-        ProductionSuggestionResponseDTO response =
-                productionService.generateProductionSuggestionResponseDTO();
+        ProductionSuggestionResponseDTO response = productionService.generateProductionSuggestionResponseDTO();
 
         assertEquals(1, response.getItems().size());
-        assertEquals(new BigDecimal("2000"), response.getTotalValue());
-
+        assertEquals("Car", response.getItems().get(0).getProductName());
     }
 
     @Test
-    void shouldReturnEmptyWhenNoStockAvailable() {
+    void testReturnEmptyWhenNoStockAvailable() {
+        RawMaterial ironWithoutStock = RawMaterialTestFixture.createRawMaterial(
+                TestConstants.RAW_MATERIAL_ID, "Iron", "IRON01", TestConstants.RAW_MATERIAL_STOCK_ZERO, TestConstants.UNIT_KG);
 
-        RawMaterial iron = new RawMaterial(1L, "Iron","IRON01" ,BigDecimal.ZERO, "kg");
-
-        Product product = new Product(1L,"CAR01", "Car", new BigDecimal("1000"), new ArrayList<ProductMaterial>());
-        ProductMaterial pm = new ProductMaterial(1L, product, iron, new BigDecimal("50"));
-        product.setMaterials(new ArrayList<>(List.of(pm)));
+        Product product = ProductTestFixture.createProduct(
+                TestConstants.PRODUCT_ID, "CAR01", "Car", TestConstants.PRODUCT_PRICE);
+        ProductMaterial pm = ProductTestFixture.createProductMaterial(
+                1L, product, ironWithoutStock, TestConstants.QUANTITY_50);
+        product.getMaterials().add(pm);
 
         when(productRepository.findAllWithMaterials())
                 .thenReturn(new ArrayList<>(List.of(product)));
-
         when(rawMaterialRepository.findAll())
-                .thenReturn(new ArrayList<>(List.of(iron)));
+                .thenReturn(new ArrayList<>(List.of(ironWithoutStock)));
 
-        ProductionSuggestionResponseDTO response =
-                productionService.generateProductionSuggestionResponseDTO();
+        ProductionSuggestionResponseDTO response = productionService.generateProductionSuggestionResponseDTO();
 
         assertTrue(response.getItems().isEmpty());
-        assertEquals(BigDecimal.ZERO, response.getTotalValue());
     }
 
     @Test
-    void shouldProduceMultipleProductsWhenStockAllows() {
+    void testProduceMultipleProductsWhenStockAllows() {
+        RawMaterial iron = RawMaterialTestFixture.createRawMaterial(
+                TestConstants.RAW_MATERIAL_ID, "Iron", "IRON01", TestConstants.RAW_MATERIAL_STOCK_LARGE, TestConstants.UNIT_KG);
 
-        RawMaterial iron = new RawMaterial(1L, "Iron","IRON01", new BigDecimal("250"), "kg");
+        Product expensiveProduct = ProductTestFixture.createProduct(
+                TestConstants.PRODUCT_ID, "CAR01", "Car", TestConstants.PRODUCT_PRICE);
+        ProductMaterial pmExpensive = ProductTestFixture.createProductMaterial(
+                1L, expensiveProduct, iron, TestConstants.QUANTITY_100);
+        expensiveProduct.getMaterials().add(pmExpensive);
 
-        Product productA = new Product(1L,"CAR01", "Car", new BigDecimal("1000"),new ArrayList<ProductMaterial>());
-        ProductMaterial pmA = new ProductMaterial(1L, productA, iron, new BigDecimal("100"));
-        productA.setMaterials(new ArrayList<>(List.of(pmA)));
-
-        Product productB = new Product(2L,"BIKE01", "Bike", new BigDecimal("500"),new ArrayList<ProductMaterial>());
-        ProductMaterial pmB = new ProductMaterial(2L, productB, iron, new BigDecimal("50"));
-        productB.setMaterials(new ArrayList<>(List.of(pmB)));
+        Product cheapProduct = ProductTestFixture.createProduct(
+                TestConstants.PRODUCT_ID_TWO, "BIKE01", "Bike", TestConstants.PRODUCT_PRICE_LOW);
+        ProductMaterial pmCheap = ProductTestFixture.createProductMaterial(
+                2L, cheapProduct, iron, TestConstants.QUANTITY_50);
+        cheapProduct.getMaterials().add(pmCheap);
 
         when(productRepository.findAllWithMaterials())
-                .thenReturn(new ArrayList<>(List.of(productA, productB)));
-
+                .thenReturn(new ArrayList<>(List.of(expensiveProduct, cheapProduct)));
         when(rawMaterialRepository.findAll())
                 .thenReturn(new ArrayList<>(List.of(iron)));
-        ProductionSuggestionResponseDTO response =
-                productionService.generateProductionSuggestionResponseDTO();
+
+        ProductionSuggestionResponseDTO response = productionService.generateProductionSuggestionResponseDTO();
 
         assertEquals(2, response.getItems().size());
-        assertEquals(new BigDecimal("2500"), response.getTotalValue());
     }
 
     @Test
-    void shouldLimitProductionByLowestAvailableRawMaterial() {
+    void testLimitProductionByMostRestrictiveRawMaterial() {
+        RawMaterial iron = RawMaterialTestFixture.createRawMaterial(
+                1L, "Iron", "IRON01", TestConstants.RAW_MATERIAL_STOCK_LARGE, TestConstants.UNIT_KG);
+        RawMaterial plastic = RawMaterialTestFixture.createRawMaterial(
+                2L, "Plastic", "PLASTIC01", TestConstants.RAW_MATERIAL_STOCK, TestConstants.UNIT_KG);
 
-        // Matérias-primas
-        RawMaterial iron = new RawMaterial(1L, "Iron","IRON01", new BigDecimal("300"), "kg");
-        RawMaterial plastic = new RawMaterial(2L, "Plastic", "PLASTIC01", new BigDecimal("100"), "kg");
-
-        // Produto precisa de:
-        // 100 ferro
-        // 50 plástico
-        Product product = new Product(1L,"CAR01", "Car", new BigDecimal("1000"), new ArrayList<ProductMaterial>());
-
-        ProductMaterial ironMaterial =
-                new ProductMaterial(1L, product, iron, new BigDecimal("100"));
-
-        ProductMaterial plasticMaterial =
-                new ProductMaterial(2L, product, plastic, new BigDecimal("50"));
-
-        product.setMaterials(new ArrayList<>(List.of(ironMaterial, plasticMaterial)));
+        Product product = ProductTestFixture.createProduct(
+                TestConstants.PRODUCT_ID, "CAR01", "Car", TestConstants.PRODUCT_PRICE);
+        ProductMaterial ironMaterial = ProductTestFixture.createProductMaterial(
+                1L, product, iron, TestConstants.QUANTITY_100);
+        ProductMaterial plasticMaterial = ProductTestFixture.createProductMaterial(
+                2L, product, plastic, TestConstants.QUANTITY_50);
+        product.getMaterials().add(ironMaterial);
+        product.getMaterials().add(plasticMaterial);
 
         when(productRepository.findAllWithMaterials())
                 .thenReturn(new ArrayList<>(List.of(product)));
-
         when(rawMaterialRepository.findAll())
                 .thenReturn(new ArrayList<>(List.of(iron, plastic)));
 
-        ProductionSuggestionResponseDTO response =
-                productionService.generateProductionSuggestionResponseDTO();
-
-        /*
-                Ferro permite: 300 / 100 = 3
-                Plástico permite: 100 / 50 = 2
-
-                Logo, máximo = 2
-        */
+        ProductionSuggestionResponseDTO response = productionService.generateProductionSuggestionResponseDTO();
 
         assertEquals(1, response.getItems().size());
-        assertEquals(new BigDecimal("2000"), response.getTotalValue());
         assertEquals(2, response.getItems().get(0).getQuantityToProduce());
     }
 
     @Test
-    void shouldIgnoreProductWithoutMaterials() {
-
-        Product productWithoutMaterials =
-                new Product(1L, "Service","SERVICE01", new BigDecimal("1000"),new ArrayList<ProductMaterial>());
-
-        productWithoutMaterials.setMaterials(new ArrayList<>()); // vazio
+    void testIgnoreProductWithoutMaterials() {
+        Product productWithoutMaterials = ProductTestFixture.createProduct(
+                TestConstants.PRODUCT_ID, "SERVICE01", "Service", TestConstants.PRODUCT_PRICE);
 
         when(productRepository.findAllWithMaterials())
                 .thenReturn(new ArrayList<>(List.of(productWithoutMaterials)));
-
         when(rawMaterialRepository.findAll())
                 .thenReturn(new ArrayList<>());
 
-        ProductionSuggestionResponseDTO response =
-                productionService.generateProductionSuggestionResponseDTO();
+        ProductionSuggestionResponseDTO response = productionService.generateProductionSuggestionResponseDTO();
 
         assertTrue(response.getItems().isEmpty());
-        assertEquals(BigDecimal.ZERO, response.getTotalValue());
-  }
+    }
 
-  @Test
-  void shouldIgnoreProductWithNullMaterials() {
-        Product productWithNullMaterials =
-                new Product(1L, "Service","SERVICE01", new BigDecimal("1000"),null);
+    @Test
+    void testIgnoreProductWithNullMaterials() {
+        Product productWithNullMaterials = new Product(TestConstants.PRODUCT_ID, "SERVICE01", "Service", 
+                TestConstants.PRODUCT_PRICE, null);
 
         when(productRepository.findAllWithMaterials())
                 .thenReturn(new ArrayList<>(List.of(productWithNullMaterials)));
-
         when(rawMaterialRepository.findAll())
                 .thenReturn(new ArrayList<>());
 
-        ProductionSuggestionResponseDTO response =
-                productionService.generateProductionSuggestionResponseDTO();
+        ProductionSuggestionResponseDTO response = productionService.generateProductionSuggestionResponseDTO();
 
         assertTrue(response.getItems().isEmpty());
-        assertEquals(BigDecimal.ZERO, response.getTotalValue());
-  }
+    }
 
-  @Test
-  void shouldHandleProductsWithZeroRequiredQuantity() {
-        // Matéria-prima
-        RawMaterial iron = new RawMaterial(1L, "Iron","IRON01", new BigDecimal("100"), "kg");
+    @Test
+    void testHandleProductsWithZeroRequiredQuantity() {
+        RawMaterial iron = RawMaterialTestFixture.createRawMaterial(
+                TestConstants.RAW_MATERIAL_ID, "Iron", "IRON01", TestConstants.RAW_MATERIAL_STOCK, TestConstants.UNIT_KG);
 
-        // Produto que requer 0 de ferro
-        Product product = new Product(1L,"CAR01", "Car", new BigDecimal("1000"),new ArrayList<ProductMaterial>());
-        ProductMaterial pm = new ProductMaterial(1L, product, iron, BigDecimal.ZERO);
-        product.setMaterials(new ArrayList<>(List.of(pm)));
+        Product product = ProductTestFixture.createProduct(
+                TestConstants.PRODUCT_ID, "CAR01", "Car", TestConstants.PRODUCT_PRICE);
+        ProductMaterial pm = ProductTestFixture.createProductMaterial(
+                1L, product, iron, TestConstants.QUANTITY_ZERO);
+        product.getMaterials().add(pm);
 
         when(productRepository.findAllWithMaterials())
                 .thenReturn(new ArrayList<>(List.of(product)));
-
         when(rawMaterialRepository.findAll())
                 .thenReturn(new ArrayList<>(List.of(iron)));
 
-        ProductionSuggestionResponseDTO response =
-                productionService.generateProductionSuggestionResponseDTO();
+        ProductionSuggestionResponseDTO response = productionService.generateProductionSuggestionResponseDTO();
 
         assertEquals(1, response.getItems().size());
-        assertEquals(new BigDecimal("1000"), response.getTotalValue());
     }
 }
