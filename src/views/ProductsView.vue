@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import productService from '../services/productService'
 import rawMaterialService from '../services/rawMaterialService'
 import BaseModal from '../components/BaseModal.vue'
@@ -29,7 +29,7 @@ const emptyProduct = {
   name: '',
   code: '',
   price: 0,
-  materials: []
+  materials: [],
 }
 
 const form = ref({ ...emptyProduct })
@@ -37,7 +37,7 @@ const form = ref({ ...emptyProduct })
 const fetchData = async () => {
   const [prodRes, matRes] = await Promise.all([
     productService.getAll(),
-    rawMaterialService.getAll()
+    rawMaterialService.getAll(),
   ])
   products.value = prodRes.data
   materials.value = matRes.data
@@ -59,8 +59,8 @@ const openEdit = (product) => {
 
 const addMaterial = () => {
   form.value.materials.push({
-    rawMaterialId: '',
-    quantityRequired: 1
+    rawMaterialId: null,
+    quantityRequired: 1,
   })
 }
 
@@ -69,6 +69,10 @@ const removeMaterial = (index) => {
 }
 
 const saveProduct = async () => {
+  if (hasDuplicateMaterials()) {
+    showToast('Não é permitido repetir materiais.', 'error')
+    return
+  }
   if (editingProduct.value) {
     await productService.update(editingProduct.value.id, form.value)
     showToast('Produto atualizado com sucesso!')
@@ -101,9 +105,33 @@ const confirmDelete = async () => {
 }
 
 const getMaterialName = (id) => {
-  const mat = materials.value.find(m => m.id === id)
+  const mat = materials.value.find((m) => m.id === id)
   return mat ? mat.name : '—'
 }
+const hasDuplicateMaterials = () => {
+  const ids = form.value.materials
+    .map((m) => m.rawMaterialId) // ✅ corrigido
+    .filter((id) => id !== '' && id !== -1 && id != null)
+
+  return new Set(ids).size !== ids.length
+}
+
+const getAvailableMaterials = (currentIndex) => {
+  const selectedIds = form.value.materials
+    .map((m, index) => (index !== currentIndex ? m.rawMaterialId : null))
+    .filter((id) => id != null)
+
+  return materials.value.filter((material) => !selectedIds.includes(material.id))
+}
+
+const hasEmptyLine = computed(() =>
+  form.value.materials.some(m => m.rawMaterialId == null)
+)
+
+const canAddMaterial = computed(() => {
+  if (hasEmptyLine.value) return false
+  return form.value.materials.length < materials.value.length
+})
 </script>
 
 <template>
@@ -154,40 +182,34 @@ const getMaterialName = (id) => {
       <input v-model="form.code" placeholder="Código" />
       <input v-model.number="form.price" type="number" placeholder="Preço" />
 
-       <h4>Materiais</h4>
+      <h4>Materiais</h4>
 
-      <div
-        v-for="(mat, index) in form.materials"
-        :key="index"
-        class="material-row"
-      >
+      <p v-if="hasDuplicateMaterials()" class="error-text">⚠ Material duplicado detectado.</p>
+
+      <div v-for="(mat, index) in form.materials" :key="index" class="material-row">
         <select v-model="mat.rawMaterialId">
-          <option disabled value="">Selecione</option>
-          <option
-            v-for="m in materials"
-            :key="m.id"
-            :value="m.id"
-          >
+          <option disabled :value="null">Selecione</option>
+          <option v-for="m in getAvailableMaterials(index)" :key="m.id" :value="m.id">
             {{ m.name }}
           </option>
         </select>
 
-        <input
-          type="number"
-          v-model.number="mat.quantityRequired"
-          min="1"
-        />
+        <input type="number" v-model.number="mat.quantityRequired" min="1" />
 
         <button @click="removeMaterial(index)">❌</button>
       </div>
 
-      <button class="add-material" @click="addMaterial">
+      <button class="add-material" :disabled="!canAddMaterial" @click="addMaterial">
         ➕ Adicionar Material
       </button>
 
+      <p v-if="!canAddMaterial" class="info-text">Todos os materiais já foram adicionados.</p>
+
       <div class="modal-actions">
         <button @click="showModal = false">Cancelar</button>
-        <button class="primary" @click="saveProduct">Salvar</button>
+        <button class="primary" :disabled="hasDuplicateMaterials()" @click="saveProduct">
+          Salvar
+        </button>
       </div>
     </BaseModal>
 
@@ -313,5 +335,15 @@ button.delete {
   padding: 0.5rem;
   border-radius: 6px;
   cursor: pointer;
+}
+.add-material:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.info-text {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-top: 0.3rem;
 }
 </style>
