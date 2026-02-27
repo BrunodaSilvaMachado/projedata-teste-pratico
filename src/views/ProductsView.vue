@@ -1,11 +1,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import productService from '../services/productService'
+import rawMaterialService from '../services/rawMaterialService'
 import BaseModal from '../components/BaseModal.vue'
 import ConfirmModal from '../components/ConfirmModal.vue'
 import BaseToast from '../components/BaseToast.vue'
 
 const products = ref([])
+const materials = ref([])
+
 const showModal = ref(false)
 const editingProduct = ref(null)
 const showConfirm = ref(false)
@@ -24,17 +27,23 @@ const showToast = (message, type = 'success') => {
 
 const emptyProduct = {
   name: '',
+  code: '',
   price: 0,
+  materials: []
 }
 
 const form = ref({ ...emptyProduct })
 
-const fetchProducts = async () => {
-  const response = await productService.getAll()
-  products.value = response.data
+const fetchData = async () => {
+  const [prodRes, matRes] = await Promise.all([
+    productService.getAll(),
+    rawMaterialService.getAll()
+  ])
+  products.value = prodRes.data
+  materials.value = matRes.data
 }
 
-onMounted(fetchProducts)
+onMounted(fetchData)
 
 const openCreate = () => {
   form.value = { ...emptyProduct }
@@ -43,20 +52,33 @@ const openCreate = () => {
 }
 
 const openEdit = (product) => {
-  form.value = { ...product }
+  form.value = JSON.parse(JSON.stringify(product))
   editingProduct.value = product
   showModal.value = true
+}
+
+const addMaterial = () => {
+  form.value.materials.push({
+    rawMaterialId: '',
+    quantityRequired: 1
+  })
+}
+
+const removeMaterial = (index) => {
+  form.value.materials.splice(index, 1)
 }
 
 const saveProduct = async () => {
   if (editingProduct.value) {
     await productService.update(editingProduct.value.id, form.value)
+    showToast('Produto atualizado com sucesso!')
   } else {
     await productService.create(form.value)
+    showToast('Produto criado com sucesso!')
   }
 
   showModal.value = false
-  await fetchProducts()
+  await fetchData()
 }
 
 const formatCurrency = (value) => {
@@ -75,7 +97,12 @@ const confirmDelete = async () => {
   await productService.delete(deleteId.value)
   showConfirm.value = false
   showToast('Produto removido com sucesso!')
-  await fetchProducts()
+  await fetchData()
+}
+
+const getMaterialName = (id) => {
+  const mat = materials.value.find(m => m.id === id)
+  return mat ? mat.name : '—'
 }
 </script>
 
@@ -89,17 +116,25 @@ const confirmDelete = async () => {
       <table>
         <thead>
           <tr>
+            <th>ID</th>
             <th>Nome</th>
             <th>Código</th>
             <th>Preço</th>
+            <th>Materiais</th>
             <th>Ações</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="p in products" :key="p.id">
+            <td>{{ p.id }}</td>
             <td>{{ p.name }}</td>
             <td>{{ p.code }}</td>
             <td>{{ formatCurrency(p.price) }}</td>
+            <td>
+              <div v-for="m in p.materials" :key="m.materialId">
+                {{ getMaterialName(m.rawMaterialId) }} ({{ m.quantityRequired }})
+              </div>
+            </td>
             <td>
               <button class="edit" @click="openEdit(p)">✏️</button>
               <button class="delete" @click="askDelete(p.id)">🗑️</button>
@@ -116,7 +151,39 @@ const confirmDelete = async () => {
       @close="showModal = false"
     >
       <input v-model="form.name" placeholder="Nome" />
+      <input v-model="form.code" placeholder="Código" />
       <input v-model.number="form.price" type="number" placeholder="Preço" />
+
+       <h4>Materiais</h4>
+
+      <div
+        v-for="(mat, index) in form.materials"
+        :key="index"
+        class="material-row"
+      >
+        <select v-model="mat.rawMaterialId">
+          <option disabled value="">Selecione</option>
+          <option
+            v-for="m in materials"
+            :key="m.id"
+            :value="m.id"
+          >
+            {{ m.name }}
+          </option>
+        </select>
+
+        <input
+          type="number"
+          v-model.number="mat.quantityRequired"
+          min="1"
+        />
+
+        <button @click="removeMaterial(index)">❌</button>
+      </div>
+
+      <button class="add-material" @click="addMaterial">
+        ➕ Adicionar Material
+      </button>
 
       <div class="modal-actions">
         <button @click="showModal = false">Cancelar</button>
@@ -225,5 +292,26 @@ button.delete {
 .modal-actions .primary {
   background: #3b82f6;
   color: white;
+}
+
+.material-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.material-row select,
+.material-row input {
+  flex: 1;
+  padding: 0.4rem;
+}
+
+.add-material {
+  margin: 0.5rem 0;
+  background: #e0f2fe;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
 }
 </style>
