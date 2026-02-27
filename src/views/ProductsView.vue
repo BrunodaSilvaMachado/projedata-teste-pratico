@@ -109,7 +109,7 @@ const canAddMaterial = computed(() => {
 <template>
   <div>
     <HeaderActions>
-      <button @click="openCreate">➕ Novo Produto</button>
+      <button class="primary" @click="openCreate">➕ Novo Produto</button>
     </HeaderActions>
 
     <BaseTable>

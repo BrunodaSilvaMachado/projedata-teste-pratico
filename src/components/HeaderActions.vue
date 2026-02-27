@@ -1,16 +1,18 @@
 <template>
   <div class="header-actions">
-    <slot/>
+    <slot />
   </div>
 </template>
 
-<style scoped>
+<style>
 .header-actions {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 1rem;
 }
 
+/* ensure buttons passed via slot also receive styles */
+.header-actions ::v-deep button,
 .header-actions button {
   background: #3b82f6;
   color: white;

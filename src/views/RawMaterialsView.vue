@@ -72,7 +72,7 @@ const isFormValid = computed(() => {
 <template>
   <div>
     <HeaderActions>
-      <button @click="openCreate">➕ Nova Matéria-Prima</button>
+      <button class="primary" @click="openCreate">➕ Nova Matéria-Prima</button>
     </HeaderActions>
 
     <BaseTable>

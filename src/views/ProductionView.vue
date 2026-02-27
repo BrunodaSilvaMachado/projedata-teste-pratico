@@ -73,7 +73,7 @@ const pieData = computed(() => ({
 
   <div v-else>
     <HeaderActions>
-      <button @click="fetchProduction">🔄 Atualizar Produção</button>
+      <button class="primary" @click="fetchProduction">🔄 Atualizar Produção</button>
     </HeaderActions>
 
     <!-- CARDS -->

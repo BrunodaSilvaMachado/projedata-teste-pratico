@@ -19,7 +19,7 @@ body {
 /* === GLOBAL FONT === */
 body {
   margin: 0;
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   background-color: #f1f5f9;
   color: #1e293b;
 }
@@ -30,4 +30,32 @@ body {
 
 button {
   font-family: inherit;
+}
+
+/* common button classes applied globally */
+button.primary {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button.edit {
+  background: #facc15;
+  border: none;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button.delete {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  margin-left: 0.5rem;
+  cursor: pointer;
 }
