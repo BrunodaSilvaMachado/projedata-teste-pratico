@@ -34,8 +34,8 @@ O sistema permite:
 
 ```
 autoflex/
-├── autoflex(backend)/ → API REST (Spring Boot)
-└── autoflex-fronend(frontend)/ → Aplicação SPA (Vue 3)
+├── autoflex-repo/ → Backend: API REST (Spring Boot)
+└── autoflex-fronend-repo/ → Frontend: Aplicação SPA (Vue 3)
 ```
 
 
@@ -69,7 +69,7 @@ Pré-requisitos:
 - PostgreSQL configurado (Para teste está disponível o banco de dados H2)
 
 ```bash
-cd backend
+cd autoflex-repo
 mvn clean install
 mvn spring-boot:run
 ```
@@ -84,7 +84,7 @@ Pré-requisitos:
 
 Node.js 18+
 ```bash
-cd frontend
+cd autoflex-frontend-repo
 npm install
 npm run dev
 
