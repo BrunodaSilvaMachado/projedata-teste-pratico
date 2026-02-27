@@ -1,0 +1,14 @@
+conversa-gpt.*
+instruções.md
+
+# regras Java/Maven
+/autoflex/target/
+**/log/
+*.class
+.idea/
+
+# regras Node/Vite
+/autoflex-frontend/node_modules/
+/autoflex-frontend/dist/
+npm-debug.log
+.vite/
