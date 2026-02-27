@@ -1,43 +1,29 @@
 <script setup>
+import BaseModal from './BaseModal.vue'
+
 defineProps({
   show: Boolean,
-  message: String
+  message: String,
+  title: {
+    type: String,
+    default: 'Atenção',
+  },
 })
 
 const emit = defineEmits(['confirm', 'cancel'])
 </script>
 
 <template>
-  <div v-if="show" class="overlay">
-    <div class="modal">
-      <p>{{ message }}</p>
-
-      <div class="actions">
-        <button @click="emit('cancel')">Cancelar</button>
-        <button class="danger" @click="emit('confirm')">Confirmar</button>
-      </div>
+  <BaseModal :show="show" :title="title" @close="emit('cancel')">
+    <p>{{ message }}</p>
+    <div class="actions">
+      <button @click="emit('cancel')">Cancelar</button>
+      <button class="danger" @click="emit('confirm')">Confirmar</button>
     </div>
-  </div>
+  </BaseModal>
 </template>
 
 <style scoped>
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1100;
-}
-
-.modal {
-  background: white;
-  padding: 2rem;
-  border-radius: 16px;
-  width: 350px;
-}
-
 .actions {
   display: flex;
   justify-content: flex-end;

@@ -12,6 +12,10 @@ import {
   LinearScale,
 } from 'chart.js'
 import productionService from '../services/productionService'
+import { formatCurrency } from '../utils/format'
+
+import HeaderActions from '../components/HeaderActions.vue'
+import BaseTable from '../components/BaseTable.vue'
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, ArcElement, CategoryScale, LinearScale)
 
@@ -58,14 +62,6 @@ const pieData = computed(() => ({
     },
   ],
 }))
-
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  }).format(value)
-}
-
 </script>
 
 <template>
@@ -73,14 +69,12 @@ const formatCurrency = (value) => {
     <div class="skeleton-card" v-for="n in 3" :key="n"></div>
     <div class="skeleton-chart"></div>
     <div class="skeleton-chart"></div>
- </div>
+  </div>
 
   <div v-else>
-    <div class="actions">
-      <button @click="fetchProduction">
-        🔄 Atualizar Produção
-      </button>
-    </div>
+    <HeaderActions>
+      <button @click="fetchProduction">🔄 Atualizar Produção</button>
+    </HeaderActions>
 
     <!-- CARDS -->
     <div class="cards">
@@ -111,26 +105,22 @@ const formatCurrency = (value) => {
     </div>
 
     <!-- TABELA -->
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Produto</th>
-            <th>Quantidade</th>
-            <th>Preço Unitário</th>
-            <th>Valor Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in productions" :key="item.productName">
-            <td>{{ item.productName }}</td>
-            <td>{{ item.quantityToProduce }}</td>
-            <td>{{ formatCurrency(item.unitPrice) }}</td>
-            <td>{{ formatCurrency(item.totalValue) }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <BaseTable>
+      <template #header>
+        <th>Produto</th>
+        <th>Quantidade</th>
+        <th>Preço Unitário</th>
+        <th>Valor Total</th>
+      </template>
+      <template #body>
+        <tr v-for="item in productions" :key="item.productName">
+          <td>{{ item.productName }}</td>
+          <td>{{ item.quantityToProduce }}</td>
+          <td>{{ formatCurrency(item.unitPrice) }}</td>
+          <td>{{ formatCurrency(item.totalValue) }}</td>
+        </tr>
+      </template>
+    </BaseTable>
   </div>
 </template>
 
@@ -146,7 +136,7 @@ const formatCurrency = (value) => {
   background: white;
   padding: 1.5rem;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s ease;
 }
 
@@ -170,14 +160,14 @@ const formatCurrency = (value) => {
   padding: 1.5rem;
   margin-bottom: 2rem;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .table-container {
   background: white;
   padding: 1.5rem;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .skeleton-container {
@@ -188,12 +178,7 @@ const formatCurrency = (value) => {
 
 .skeleton-card,
 .skeleton-chart {
-  background: linear-gradient(
-    90deg,
-    #e5e7eb 25%,
-    #f3f4f6 50%,
-    #e5e7eb 75%
-  );
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 12px;
@@ -232,7 +217,8 @@ table {
   border-collapse: collapse;
 }
 
-th, td {
+th,
+td {
   padding: 0.8rem;
   text-align: left;
 }
@@ -242,7 +228,11 @@ th {
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 </style>
