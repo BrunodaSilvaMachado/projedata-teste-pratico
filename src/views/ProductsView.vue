@@ -1,14 +1,30 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import productService from '../services/productService'
+import BaseModal from '../components/BaseModal.vue'
+import ConfirmModal from '../components/ConfirmModal.vue'
+import BaseToast from '../components/BaseToast.vue'
 
 const products = ref([])
 const showModal = ref(false)
 const editingProduct = ref(null)
+const showConfirm = ref(false)
+const deleteId = ref(null)
+
+const toast = ref({
+  show: false,
+  message: '',
+  type: 'success',
+})
+
+const showToast = (message, type = 'success') => {
+  toast.value = { show: true, message, type }
+  setTimeout(() => (toast.value.show = false), 2500)
+}
 
 const emptyProduct = {
   name: '',
-  price: 0
+  price: 0,
 }
 
 const form = ref({ ...emptyProduct })
@@ -43,23 +59,28 @@ const saveProduct = async () => {
   await fetchProducts()
 }
 
-const deleteProduct = async (id) => {
-  await productService.delete(id)
-  await fetchProducts()
-}
-
 const formatCurrency = (value) => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
-    currency: 'BRL'
+    currency: 'BRL',
   }).format(value)
 }
 
+const askDelete = (id) => {
+  deleteId.value = id
+  showConfirm.value = true
+}
+
+const confirmDelete = async () => {
+  await productService.delete(deleteId.value)
+  showConfirm.value = false
+  showToast('Produto removido com sucesso!')
+  await fetchProducts()
+}
 </script>
 
 <template>
   <div>
-
     <div class="header">
       <button @click="openCreate">➕ Novo Produto</button>
     </div>
@@ -81,7 +102,7 @@ const formatCurrency = (value) => {
             <td>{{ formatCurrency(p.price) }}</td>
             <td>
               <button class="edit" @click="openEdit(p)">✏️</button>
-              <button class="delete" @click="deleteProduct(p.id)">🗑️</button>
+              <button class="delete" @click="askDelete(p.id)">🗑️</button>
             </td>
           </tr>
         </tbody>
@@ -89,20 +110,28 @@ const formatCurrency = (value) => {
     </div>
 
     <!-- MODAL -->
-    <div v-if="showModal" class="modal-overlay">
-      <div class="modal">
-        <h2>{{ editingProduct ? 'Editar Produto' : 'Novo Produto' }}</h2>
+    <BaseModal
+      :show="showModal"
+      :title="editingProduct ? 'Editar Produto' : 'Novo Produto'"
+      @close="showModal = false"
+    >
+      <input v-model="form.name" placeholder="Nome" />
+      <input v-model.number="form.price" type="number" placeholder="Preço" />
 
-        <input v-model="form.name" placeholder="Nome" />
-        <input v-model.number="form.price" type="number" placeholder="Preço" />
-
-        <div class="modal-actions">
-          <button @click="showModal = false">Cancelar</button>
-          <button class="primary" @click="saveProduct">Salvar</button>
-        </div>
+      <div class="modal-actions">
+        <button @click="showModal = false">Cancelar</button>
+        <button class="primary" @click="saveProduct">Salvar</button>
       </div>
-    </div>
+    </BaseModal>
 
+    <ConfirmModal
+      :show="showConfirm"
+      message="Tem certeza que deseja excluir?"
+      @cancel="showConfirm = false"
+      @confirm="confirmDelete"
+    />
+
+    <BaseToast :show="toast.show" :message="toast.message" :type="toast.type" />
   </div>
 </template>
 
@@ -126,7 +155,7 @@ const formatCurrency = (value) => {
   background: white;
   border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 table {
@@ -134,7 +163,8 @@ table {
   border-collapse: collapse;
 }
 
-th, td {
+th,
+td {
   padding: 0.8rem;
 }
 
@@ -164,7 +194,7 @@ button.delete {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;
