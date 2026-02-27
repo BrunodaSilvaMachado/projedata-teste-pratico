@@ -169,7 +169,7 @@ const canAddMaterial = computed(() => {
       <p v-if="!canAddMaterial" class="info-text">Todos os materiais já foram adicionados.</p>
 
       <div class="modal-actions">
-        <button @click="showModal = false">Cancelar</button>
+        <button class="cancel" @click="showModal = false">Cancelar</button>
         <button class="primary" :disabled="hasDuplicateMaterials()" @click="saveProduct">
           Salvar
         </button>

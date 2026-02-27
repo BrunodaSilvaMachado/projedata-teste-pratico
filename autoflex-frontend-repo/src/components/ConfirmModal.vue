@@ -17,7 +17,7 @@ const emit = defineEmits(['confirm', 'cancel'])
   <BaseModal :show="show" :title="title" @close="emit('cancel')">
     <p>{{ message }}</p>
     <div class="actions">
-      <button @click="emit('cancel')">Cancelar</button>
+      <button class="cancel" @click="emit('cancel')">Cancelar</button>
       <button class="danger" @click="emit('confirm')">Confirmar</button>
     </div>
   </BaseModal>

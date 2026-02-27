@@ -115,7 +115,7 @@ const isFormValid = computed(() => {
       <input v-model="form.unit" placeholder="Unidade (kg, un, m...)" />
 
       <div class="modal-actions">
-        <button @click="showModal = false">Cancelar</button>
+        <button class="cancel" @click="showModal = false">Cancelar</button>
         <button class="primary" :disabled="!isFormValid" @click="saveMaterial">Salvar</button>
       </div>
     </BaseModal>
@@ -142,4 +142,21 @@ button.primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.modal {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modal input {
+  padding: 0.6rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+
 </style>

@@ -21,7 +21,7 @@ import br.com.java.autoflex.fixture.TestConstants;
 import br.com.java.autoflex.repository.ProductRepository;
 import br.com.java.autoflex.repository.RawMaterialRepository;
 import br.com.java.autoflex.service.strategy.ProductionAlgorithm;
-import br.com.java.autoflex.service.strategy.GreedyProductionStrategy;
+import br.com.java.autoflex.service.strategy.GreedyProductionAlgorithm;
 
 /**
  * Unit tests for ProductionServiceImpl.
@@ -37,7 +37,7 @@ class ProductionServiceImplTest {
     void setUp() {
         productRepository = mock(ProductRepository.class);
         rawMaterialRepository = mock(RawMaterialRepository.class);
-        productionAlgorithm = new GreedyProductionStrategy();
+        productionAlgorithm = new GreedyProductionAlgorithm();
         productionService = new ProductionServiceImpl(productRepository, rawMaterialRepository, productionAlgorithm);
     }
 

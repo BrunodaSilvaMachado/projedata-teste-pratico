@@ -1,6 +1,6 @@
 package br.com.java.autoflex.dto.production;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.*; //remover
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import java.math.BigDecimal;

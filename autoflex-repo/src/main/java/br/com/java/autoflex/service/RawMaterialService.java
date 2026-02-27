@@ -1,6 +1,7 @@
 package br.com.java.autoflex.service;
 
-import br.com.java.autoflex.dto.*;
+import br.com.java.autoflex.dto.RawMaterialResponseDTO;
+import br.com.java.autoflex.dto.RawMaterialRequestDTO;
 import java.util.List;
 
 public interface RawMaterialService {

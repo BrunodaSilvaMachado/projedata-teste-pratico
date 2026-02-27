@@ -12,3 +12,4 @@ instruções.md
 /autoflex-frontend/dist/
 npm-debug.log
 .vite/
+autoflex-db.trace.db

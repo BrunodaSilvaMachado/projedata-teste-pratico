@@ -35,11 +35,7 @@ public class RawMaterialServiceImpl implements RawMaterialService {
     public RawMaterialResponseDTO update(Long id, RawMaterialRequestDTO request) {
         RawMaterial existingRawMaterial = rawMaterialRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.RAW_MATERIAL_NOT_FOUND + id));
-
-        existingRawMaterial.setName(request.getName());
-        existingRawMaterial.setCode(request.getCode());
-        existingRawMaterial.setStockQuantity(request.getStockQuantity());
-        existingRawMaterial.setUnit(request.getUnit());
+        existingRawMaterial.updateFromRequest(request);
 
         RawMaterial updatedRawMaterial = rawMaterialRepository.save(existingRawMaterial);
         return rawMaterialMapper.toResponseDTO(updatedRawMaterial);

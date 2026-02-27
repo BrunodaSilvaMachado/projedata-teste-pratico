@@ -20,7 +20,7 @@ import br.com.java.autoflex.dto.production.ProductionSuggestionResponseDTO;
  * as many units as possible for each product until materials are exhausted.
  */
 @Component
-public class GreedyProductionStrategy implements ProductionAlgorithm {
+public class GreedyProductionAlgorithm implements ProductionAlgorithm {
 
     private static final int DEFAULT_MIN_PRODUCTION_UNITS = 1;
 

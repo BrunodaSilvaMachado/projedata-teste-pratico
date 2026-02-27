@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
-// DTO to receive the request for creating a new raw material. It includes validation annotations to ensure that the required fields are provided and valid.
 @Data
 public class RawMaterialRequestDTO {
     @NotBlank(message = "Name is required")

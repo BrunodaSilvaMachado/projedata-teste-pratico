@@ -59,3 +59,12 @@ button.delete {
   margin-left: 0.5rem;
   cursor: pointer;
 }
+
+button.cancel {
+  background: #e5e7eb;
+  border: none;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  margin-left: 0.5rem;
+  cursor: pointer;
+}
