@@ -62,6 +62,69 @@ const pieData = computed(() => ({
     },
   ],
 }))
+
+const allMaterials = computed(() => {
+  const map = new Map()
+
+  productions.value.forEach((product) => {
+    product.materials.forEach((material) => {
+      if (!map.has(material.rawMaterialId)) {
+        map.set(material.rawMaterialId, material.rawMaterialName)
+      }
+    })
+  })
+
+  return Array.from(map.entries()).map(([id, name]) => ({
+    id,
+    name,
+  }))
+})
+
+const barDataProductMaterialUsage = computed(() => {
+  const labels = productions.value.map((p) => p.productName)
+
+  const datasets = allMaterials.value.map((material, index) => ({
+    label: material.name,
+    data: productions.value.map((product) => {
+      const found = product.materials.find(
+        (m) => m.rawMaterialId === material.id,
+      )
+      return found ? found.quantityUsed : 0
+    }),
+    backgroundColor: [
+      '#3b82f6',
+      '#10b981',
+      '#f59e0b',
+      '#ef4444',
+      '#8b5cf6',
+      '#06b6d4',
+      '#84cc16',
+    ][index % 7],
+  }))
+
+  return {
+    labels,
+    datasets,
+  }
+})
+
+const stackedOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'bottom',
+    },
+  },
+  scales: {
+    x: {
+      stacked: true,
+    },
+    y: {
+      stacked: true,
+    },
+  },
+}
 </script>
 
 <template>
@@ -100,9 +163,17 @@ const pieData = computed(() => ({
     </div>
 
     <!-- GRÁFICO PIZZA -->
-    <div class="chart-container">
-      <Pie :data="pieData" />
-    </div>
+    <div class="charts-row">
+      <div class="chart-container">
+        <Pie :data="pieData" />
+      </div>
+
+      <div class="chart-container">
+        <Bar :data="barDataProductMaterialUsage" :options="stackedOptions" />
+      </div>
+  </div>
+
+
 
     <!-- TABELA -->
     <BaseTable>
@@ -163,6 +234,13 @@ const pieData = computed(() => ({
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
+.charts-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
 .table-container {
   background: white;
   padding: 1.5rem;
@@ -210,21 +288,6 @@ const pieData = computed(() => ({
 
 .actions button:hover {
   background-color: #2563eb;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th,
-td {
-  padding: 0.8rem;
-  text-align: left;
-}
-
-th {
-  border-bottom: 2px solid #e5e7eb;
 }
 
 @keyframes shimmer {
