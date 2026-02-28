@@ -17,6 +17,7 @@ import { useConfirmation } from '../composables/useConfirmation'
 
 const products = ref([])
 const materials = ref([])
+const searchQuery = ref('')
 
 const { toast, showToast } = useToast()
 
@@ -104,12 +105,26 @@ const canAddMaterial = computed(() => {
   if (hasEmptyLine.value) return false
   return form.value.materials.length < materials.value.length
 })
+
+const searchedProducts = computed(() => {
+  if (!searchQuery.value) return products.value
+  return products.value.filter((p) =>
+    p.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+    p.code.toLowerCase().includes(searchQuery.value.toLowerCase())
+  )
+})
 </script>
 
 <template>
   <div>
     <HeaderActions>
       <button class="primary" @click="openCreate">➕ Novo Produto</button>
+      <input
+        v-model="searchQuery"
+        type="text"
+        placeholder="🔍 Buscar por nome ou código..."
+        class="search-input"
+      />
     </HeaderActions>
 
     <BaseTable>
@@ -122,7 +137,7 @@ const canAddMaterial = computed(() => {
         <th>Ações</th>
       </template>
       <template #body>
-        <tr v-for="p in products" :key="p.id">
+        <tr v-for="p in searchedProducts" :key="p.id">
           <td>{{ p.id }}</td>
           <td>{{ p.name }}</td>
           <td>{{ p.code }}</td>
@@ -256,5 +271,12 @@ const canAddMaterial = computed(() => {
   font-size: 0.85rem;
   color: #6b7280;
   margin-top: 0.3rem;
+}
+
+.search-input {
+  margin-left: 1rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
 }
 </style>

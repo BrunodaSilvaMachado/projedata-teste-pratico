@@ -13,3 +13,4 @@ instruções.md
 npm-debug.log
 .vite/
 autoflex-db.trace.db
+.vscode/

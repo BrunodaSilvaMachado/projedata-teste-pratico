@@ -68,11 +68,28 @@ const isFormValid = computed(() => {
     form.value.stockQuantity >= 0
   )
 })
+
+/* 🔎 Busca */
+const searchQuery = ref('')
+
+const searchedMaterials = computed(() => {
+  if (!searchQuery.value) return rawMaterials.value
+  return rawMaterials.value.filter((m) =>
+    m.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+    m.code.toLowerCase().includes(searchQuery.value.toLowerCase())
+  )
+})
 </script>
 <template>
   <div>
     <HeaderActions>
       <button class="primary" @click="openCreate">➕ Nova Matéria-Prima</button>
+      <input
+        v-model="searchQuery"
+        type="text"
+        placeholder="🔍 Buscar por nome ou código..."
+        class="search-input"
+      />
     </HeaderActions>
 
     <BaseTable>
@@ -85,7 +102,7 @@ const isFormValid = computed(() => {
         <th>Ações</th>
       </template>
       <template #body>
-        <tr v-for="m in rawMaterials" :key="m.id">
+        <tr v-for="m in searchedMaterials" :key="m.id">
           <td>{{ m.id }}</td>
           <td>{{ m.name }}</td>
           <td>{{ m.code }}</td>
