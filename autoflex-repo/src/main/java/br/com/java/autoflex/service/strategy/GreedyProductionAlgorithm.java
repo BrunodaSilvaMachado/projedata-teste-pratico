@@ -105,7 +105,14 @@ public class GreedyProductionAlgorithm implements ProductionAlgorithm {
                 product.getName(),
                 unitsToProduce,
                 product.getPrice(),
-                totalValue
+                totalValue,
+                product.getMaterials().stream()
+                    .map(pm -> new ProductionItemSuggestionDTO.MaterialUsage(
+                            pm.getRawMaterial().getId(),
+                            pm.getRawMaterial().getName(),
+                            pm.getQuantityRequired().multiply(BigDecimal.valueOf(unitsToProduce))
+                    ))
+                    .toList()
         );
     }
 

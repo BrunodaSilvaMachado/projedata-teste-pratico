@@ -19,7 +19,11 @@ class ProductionSuggestionResponseDTOTest {
                 "Produto A",
                 10,
                 new BigDecimal("2.5"),
-                new BigDecimal("25.0")
+                new BigDecimal("25.0"),
+                List.of(
+                        new ProductionItemSuggestionDTO.MaterialUsage(1L, "Material X", new BigDecimal("5.0")),
+                        new ProductionItemSuggestionDTO.MaterialUsage(2L, "Material Y", new BigDecimal("3.0"))
+                )
         );
 
         List<ProductionItemSuggestionDTO> items = new ArrayList<>();
@@ -36,7 +40,11 @@ class ProductionSuggestionResponseDTOTest {
     @Test
     void allArgsConstructorAndGetters() {
         List<ProductionItemSuggestionDTO> items = List.of(
-                new ProductionItemSuggestionDTO(2L, "Produto B", 5, new BigDecimal("3.0"), new BigDecimal("15.0"))
+                new ProductionItemSuggestionDTO(2L, "Produto B", 5, new BigDecimal("3.0"), new BigDecimal("15.0")
+                        , List.of(
+                                new ProductionItemSuggestionDTO.MaterialUsage(3L, "Material Z", new BigDecimal("2.0"))
+                        )
+                )
         );
         BigDecimal total = new BigDecimal("15.0");
 

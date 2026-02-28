@@ -32,9 +32,15 @@ class ProductionControllerTest {
     @Test
     void testReturnProductionSuggestionSuccessfully() {
         ProductionItemSuggestionDTO carProduction = new ProductionItemSuggestionDTO(
-                1L, "Car", 10, new BigDecimal("5000"), new BigDecimal("50000"));
+                1L, "Car", 10, new BigDecimal("5000"), new BigDecimal("50000"), List.of(
+                        new ProductionItemSuggestionDTO.MaterialUsage(1L, "Steel", new BigDecimal("100")),
+                        new ProductionItemSuggestionDTO.MaterialUsage(2L, "Plastic", new BigDecimal("50"))
+        ));
         ProductionItemSuggestionDTO bikeProduction = new ProductionItemSuggestionDTO(
-                2L, "Bike", 20, new BigDecimal("1000"), new BigDecimal("20000"));
+                2L, "Bike", 20, new BigDecimal("1000"), new BigDecimal("20000"), List.of(
+                        new ProductionItemSuggestionDTO.MaterialUsage(1L, "Steel", new BigDecimal("50")),
+                        new ProductionItemSuggestionDTO.MaterialUsage(3L, "Rubber", new BigDecimal("30"))
+        ));
 
         ProductionSuggestionResponseDTO responseDTO = new ProductionSuggestionResponseDTO(
                 List.of(carProduction, bikeProduction), new BigDecimal("70000"));
