@@ -98,7 +98,7 @@ Aplicação disponível em:
 
 Backend
 
-> mvn test
+> mvnw test
 
 Frontend
 
