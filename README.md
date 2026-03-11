@@ -70,8 +70,8 @@ Pré-requisitos:
 
 ```bash
 cd autoflex-repo
-mvnw clean install
-mvnw spring-boot:run
+./mvnw clean install
+./mvnw spring-boot:run
 ```
 
 A API será iniciada em:
