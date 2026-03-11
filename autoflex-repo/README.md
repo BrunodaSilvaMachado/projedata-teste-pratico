@@ -91,14 +91,14 @@ src/
 
 ```powershell
 cd backend\autoflex
-mvnw clean package
+./mvnw clean package
 ```
 
 O artefato .war será gerado em target/autoflex.war (nome conforme pom.xml). Este WAR pode ser copiado para a pasta webapps de um Tomcat ou implantado via manager.
 
 Executar em standalone
 
-> mvnw spring-boot:run
+> ./mvnw spring-boot:run
 
 ou
 
@@ -107,7 +107,7 @@ ou
 A aplicação inicia na porta 8080 por padrão. Use `application.properties` para alterar configurações.
 
 Executar testes
-> mvnw test
+> ./mvnw test
 
 ## Pendências e melhorias futuras
 
